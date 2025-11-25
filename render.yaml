@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: ventas-ferreteria-backend
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd backend && npm ci && npm run build
+    startCommand: cd backend && npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: API_PREFIX
+        value: api/v1
+      - key: CORS_ORIGIN
+        value: https://ventas-ferreteria.vercel.app,https://*.vercel.app
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 24h
+      - key: LOG_LEVEL
+        value: info
+
+

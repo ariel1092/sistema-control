@@ -1,0 +1,62 @@
+.resumen-grid-large {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.resumen-item {
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  text-align: center;
+}
+
+.resumen-item.efectivo {
+  background-color: #d4edda;
+  border: 2px solid #28a745;
+}
+
+.resumen-item.tarjeta {
+  background-color: #d1ecf1;
+  border: 2px solid #17a2b8;
+}
+
+.resumen-item.transferencia {
+  background-color: #fff3cd;
+  border: 2px solid #ffc107;
+}
+
+.resumen-item.total {
+  background-color: #cce5ff;
+  border: 2px solid #007bff;
+}
+
+.resumen-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.resumen-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.resumen-value.total-amount {
+  font-size: 32px;
+  color: #007bff;
+}
+
+.estado-caja {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+}
+
+
+
+
+

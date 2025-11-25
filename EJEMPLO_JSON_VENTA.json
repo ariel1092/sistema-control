@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "productoId": "REEMPLAZA_CON_ID_REAL_DE_PRODUCTO",
+      "cantidad": 2,
+      "precioUnitario": 150,
+      "descuentoItem": 0
+    }
+  ],
+  "metodosPago": [
+    {
+      "tipo": "EFECTIVO",
+      "monto": 300
+    }
+  ],
+  "clienteNombre": "Juan Pérez",
+  "clienteDNI": "12345678",
+  "descuentoGeneral": 0,
+  "observaciones": "Venta de prueba"
+}
+
+
+
+
+

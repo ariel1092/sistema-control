@@ -1,0 +1,376 @@
+.proveedores-page {
+  padding: 24px;
+}
+
+.proveedores-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.proveedores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.proveedor-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.proveedor-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.proveedor-card.inactivo {
+  opacity: 0.6;
+}
+
+.proveedor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.proveedor-header h3 {
+  margin: 0;
+  color: #1e3a8a;
+  font-size: 20px;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge.activo {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge.inactivo {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.proveedor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.proveedor-body p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.proveedor-body strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.proveedor-body ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+  color: #6b7280;
+}
+
+.productos-input {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.productos-input input {
+  flex: 1;
+}
+
+.productos-lista {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.productos-lista li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.btn-remove {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.btn-remove:hover {
+  background: #dc2626;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.proveedor-card.clickeable {
+  cursor: pointer;
+}
+
+.proveedor-card.clickeable:hover {
+  border: 2px solid #3b82f6;
+}
+
+/* Modal de Detalle Proveedor */
+.modal-proveedor-detalle {
+  max-width: 1200px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.cc-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.cc-resumen-card {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  text-align: center;
+}
+
+.cc-resumen-label {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.cc-resumen-monto {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.cc-resumen-monto.deuda {
+  color: #dc2626;
+}
+
+.cc-resumen-monto.positivo {
+  color: #10b981;
+}
+
+.cc-resumen-valor {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.cc-seccion {
+  margin-bottom: 32px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.cc-seccion h3 {
+  margin: 0 0 16px 0;
+  color: #1e3a8a;
+  font-size: 18px;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.cc-tabla-container {
+  overflow-x: auto;
+}
+
+.cc-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.cc-tabla thead {
+  background: #f3f4f6;
+}
+
+.cc-tabla th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.cc-tabla td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #4b5563;
+}
+
+.cc-tabla tbody tr:hover {
+  background: #f9fafb;
+}
+
+.factura-vencida {
+  background: #fee2e2 !important;
+}
+
+.factura-por-vencer {
+  background: #fef3c7 !important;
+}
+
+.dias-negativo {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.dias-alerta {
+  color: #d97706;
+  font-weight: 600;
+}
+
+.monto-positivo {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.monto-negativo {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.badge-estado {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-estado.pendiente {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-estado.enviado {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-estado.parcial {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge-estado.completado {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-estado.cancelado {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-tipo {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-tipo.factura {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-tipo.remito {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-tipo.pago-completo,
+.badge-tipo.pago-parcial {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-tipo.nota-debito {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-tipo.nota-credito {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-tipo.gasto {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.cc-vacio {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .proveedores-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .cc-resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .cc-tabla-container {
+    overflow-x: scroll;
+  }
+}
+

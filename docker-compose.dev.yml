@@ -1,0 +1,34 @@
+# version: '3.8' # Obsoleto en versiones recientes de docker-compose
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: ventas-mongodb-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data_dev:/data/db
+    environment:
+      # Comentar estas líneas para deshabilitar autenticación
+      # MONGO_INITDB_ROOT_USERNAME: admin
+      # MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: ventas-ferreteria
+    networks:
+      - ventas-network-dev
+    # MongoDB 6.0: La autenticación se puede deshabilitar con la variable de entorno
+    # O simplemente no crear usuario root en desarrollo
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongodb_data_dev:
+    driver: local
+
+networks:
+  ventas-network-dev:
+    driver: bridge
+
