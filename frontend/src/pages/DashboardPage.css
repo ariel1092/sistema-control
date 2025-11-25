@@ -182,23 +182,140 @@
   border: 1px solid #fecaca;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .dashboard-page {
-    padding: 16px;
-  }
-
-  .header-content {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
+/* Responsive - Tablets */
+@media (max-width: 1024px) {
   .charts-grid {
     grid-template-columns: 1fr;
   }
 
   .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Responsive - Móviles */
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 12px;
+  }
+
+  .dashboard-header {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .header-controls {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .period-select,
+  .date-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 16px; /* Previene zoom en iOS */
+    min-height: 48px;
+  }
+
+  .dashboard-content {
+    gap: 16px;
+  }
+
+  .charts-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .chart-card {
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  .chart-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .summary-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .summary-card {
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  .summary-card:hover {
+    transform: none;
+  }
+
+  .card-icon {
+    font-size: 32px;
+    width: 50px;
+    height: 50px;
+  }
+
+  .card-value {
+    font-size: 20px;
+  }
+
+  .card-label {
+    font-size: 13px;
+  }
+}
+
+/* Responsive - Móviles pequeños */
+@media (max-width: 480px) {
+  .dashboard-page {
+    padding: 8px;
+  }
+
+  .dashboard-header {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .summary-card {
+    padding: 12px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .card-icon {
+    font-size: 28px;
+    width: 45px;
+    height: 45px;
+  }
+
+  .card-value {
+    font-size: 18px;
+  }
+
+  .chart-card {
+    padding: 12px;
+  }
+
+  .chart-title {
+    font-size: 16px;
+    margin-bottom: 12px;
   }
 }
 

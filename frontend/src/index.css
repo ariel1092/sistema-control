@@ -90,3 +90,16 @@ code {
 .justify-between { justify-content: space-between; }
 .gap-10 { gap: 10px; }
 .gap-20 { gap: 20px; }
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: block !important; }
+  .flex-mobile-col { flex-direction: column; }
+  .w-full-mobile { width: 100% !important; }
+}
+
+@media (min-width: 769px) {
+  .show-mobile { display: none !important; }
+  .hide-mobile { display: block !important; }
+}

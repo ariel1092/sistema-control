@@ -48,6 +48,58 @@
 .form-retiro {
   background: #f9fafb;
   padding: 20px;
+}
+
+/* Responsive - Móviles */
+@media (max-width: 768px) {
+  .modal-socio {
+    max-width: 100%;
+    max-height: 95vh;
+    margin: 12px;
+  }
+
+  .socio-resumen {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .resumen-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .resumen-label {
+    font-size: 14px;
+  }
+
+  .resumen-monto {
+    font-size: 18px;
+  }
+
+  .seccion-retiro {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+  }
+
+  .form-retiro {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-socio {
+    margin: 8px;
+    max-height: 98vh;
+  }
+
+  .socio-resumen {
+    padding: 12px;
+  }
+
+  .form-retiro {
+    padding: 12px;
+  }
   border-radius: 8px;
   border: 1px solid #e5e7eb;
 }

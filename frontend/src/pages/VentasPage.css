@@ -524,18 +524,70 @@
   justify-content: flex-end;
 }
 
-/* Responsive */
+/* Responsive - Tablets */
+@media (max-width: 1024px) {
+  .ventas-sections {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+}
+
+/* Responsive - Móviles */
 @media (max-width: 768px) {
+  .ventas-simple-page {
+    padding: 12px;
+  }
+
+  .ventas-header {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 14px;
+  }
+
   .ventas-sections {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .venta-section {
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  .venta-section:hover {
+    transform: none;
+  }
+
+  .section-header h2 {
+    font-size: 20px;
+  }
+
+  .section-icon {
+    font-size: 28px;
   }
 
   .input-with-button {
     flex-direction: column;
+    gap: 8px;
   }
 
   .btn-primary {
     width: 100%;
+    padding: 14px 20px;
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .radio-group {
+    flex-direction: column;
+    gap: 12px;
   }
 
   .venta-info {
@@ -544,14 +596,95 @@
     gap: 4px;
   }
 
+  .modal-overlay {
+    padding: 12px;
+  }
+
   .modal-content {
     max-width: 100%;
     max-height: 90vh;
+    border-radius: 8px;
+  }
+
+  .modal-header {
+    padding: 16px;
+  }
+
+  .modal-header h2 {
+    font-size: 20px;
+  }
+
+  .modal-body {
+    padding: 16px;
   }
 
   .venta-info-modal {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .resumen-total {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .resumen-monto {
+    font-size: 18px;
+  }
+}
+
+/* Responsive - Móviles pequeños */
+@media (max-width: 480px) {
+  .ventas-simple-page {
+    padding: 8px;
+  }
+
+  .ventas-header {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .venta-section {
+    padding: 12px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .section-header h2 {
+    font-size: 18px;
+  }
+
+  .input-group input[type="number"] {
+    padding: 14px 16px;
+    font-size: 16px; /* Previene zoom en iOS */
+    min-height: 48px;
+  }
+
+  .transferencia-item {
+    padding: 12px;
+  }
+
+  .venta-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .modal-header {
+    padding: 12px;
+  }
+
+  .modal-body {
+    padding: 12px;
   }
 }
