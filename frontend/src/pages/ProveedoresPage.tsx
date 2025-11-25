@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { format, differenceInDays } from 'date-fns';
+import { format } from 'date-fns';
 import { proveedoresApi } from '../services/api';
 import './ProveedoresPage.css';
 
