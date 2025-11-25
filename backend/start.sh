@@ -20,5 +20,15 @@ else
 fi
 
 echo "=== Ejecutando aplicación ==="
-node dist/main.js
+# El archivo main.js está en dist/src/main.js debido a la estructura de TypeScript
+if [ -f "dist/src/main.js" ]; then
+    echo "Ejecutando desde dist/src/main.js"
+    node dist/src/main.js
+elif [ -f "dist/main.js" ]; then
+    echo "Ejecutando desde dist/main.js"
+    node dist/main.js
+else
+    echo "ERROR: No se encontró main.js ni en dist/src/main.js ni en dist/main.js"
+    exit 1
+fi
 
