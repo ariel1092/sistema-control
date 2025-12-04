@@ -28,40 +28,43 @@
     "seed:ventas": "ts-node scripts/seed-ventas.ts",
     "seed:admin": "ts-node scripts/seed-admin.ts",
     "clean:db": "ts-node scripts/clean-database.ts",
-    "create:indexes": "ts-node scripts/create-indexes.ts"
+    "create:indexes": "ts-node scripts/create-indexes.ts",
+    "backup:mongodb": "ts-node scripts/backup-mongodb.ts",
+    "backup:mongodb:compress": "ts-node scripts/backup-mongodb.ts --compress"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",
-    "@nestjs/core": "^10.3.0",
-    "@nestjs/platform-express": "^10.3.0",
     "@nestjs/config": "^3.1.1",
+    "@nestjs/core": "^10.3.0",
     "@nestjs/jwt": "^10.2.0",
-    "@nestjs/passport": "^10.0.3",
     "@nestjs/mongoose": "^10.0.2",
+    "@nestjs/passport": "^10.0.3",
+    "@nestjs/platform-express": "^10.3.0",
     "@nestjs/swagger": "^7.1.16",
+    "@sentry/node": "^7.120.4",
+    "bcrypt": "^5.1.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "date-fns": "^3.0.6",
     "mongoose": "^8.0.3",
+    "nest-winston": "^1.9.4",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "bcrypt": "^5.1.1",
-    "class-validator": "^0.14.0",
-    "class-transformer": "^0.5.1",
-    "date-fns": "^3.0.6",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "winston": "^3.11.0",
-    "nest-winston": "^1.9.4"
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.2.1",
     "@nestjs/schematics": "^10.0.3",
     "@nestjs/testing": "^10.3.0",
+    "@types/bcrypt": "^5.0.2",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.11",
     "@types/node": "^20.10.6",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.36",
-    "@types/bcrypt": "^5.0.2",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
     "eslint": "^8.56.0",
@@ -74,8 +77,8 @@
     "ts-jest": "^29.1.1",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
     "tsc-alias": "^1.8.8",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
   },
   "jest": {
@@ -99,5 +102,3 @@
     }
   }
 }
-
-

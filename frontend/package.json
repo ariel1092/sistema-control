@@ -10,6 +10,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@sentry/react": "^7.120.4",
     "axios": "^1.6.2",
     "date-fns": "^3.0.6",
     "react": "^18.2.0",
@@ -30,12 +31,3 @@
     "vite": "^5.0.8"
   }
 }
-
-
-
-
-
-
-
-
-
