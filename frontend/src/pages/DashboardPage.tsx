@@ -36,13 +36,26 @@ function DashboardPage() {
 
       switch (periodo) {
         case 'diario': {
+          // OPTIMIZACIÓN: Verificar caché antes de hacer request
+          const cacheKey = `dashboard_resumen_${fecha}`;
+          const cached = sessionStorage.getItem(cacheKey);
+          const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
+          const now = Date.now();
+          
+          // Usar caché si existe y tiene menos de 30 segundos
+          if (cached && cacheTime && (now - parseInt(cacheTime)) < 30000) {
+            setResumenDiario(JSON.parse(cached));
+            setLoading(false);
+            return;
+          }
+          
           const response = await cajaApi.obtenerResumen(fecha);
-          console.log('Dashboard: Datos recibidos del resumen:', response.data);
-          console.log('Dashboard: Total General:', response.data?.totalGeneral);
-          console.log('Dashboard: Total Efectivo:', response.data?.totalEfectivo);
-          console.log('Dashboard: Cantidad Ventas:', response.data?.cantidadVentas);
-          // Forzar actualización del estado
-          setResumenDiario({ ...response.data });
+          const data = { ...response.data };
+          setResumenDiario(data);
+          
+          // Guardar en caché
+          sessionStorage.setItem(cacheKey, JSON.stringify(data));
+          sessionStorage.setItem(`${cacheKey}_time`, now.toString());
           break;
         }
         case 'semanal': {
@@ -112,10 +125,26 @@ function DashboardPage() {
     }
   }, [periodo, fecha]);
 
-  // Cargar datos al montar y cuando cambian periodo/fecha
+  // OPTIMIZACIÓN: Cargar datos con un pequeño delay para no bloquear el render inicial
   useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
+    // Si hay datos en caché, mostrarlos inmediatamente
+    const cacheKey = `dashboard_resumen_${fecha}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached && periodo === 'diario') {
+      try {
+        setResumenDiario(JSON.parse(cached));
+      } catch (e) {
+        // Si el caché está corrupto, cargar desde API
+        cargarDatos();
+      }
+    } else {
+      // Cargar datos después de un pequeño delay para no bloquear render
+      const timeoutId = setTimeout(() => {
+        cargarDatos();
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [cargarDatos, periodo, fecha]);
 
   // Usar ref para mantener la función cargarDatos actualizada sin recrear listeners
   const cargarDatosRef = useRef(cargarDatos);
@@ -125,26 +154,24 @@ function DashboardPage() {
 
   // Escuchar eventos de ventas para actualizar en tiempo real
   useEffect(() => {
-    console.log('Dashboard: Configurando listeners de eventos...');
-    
-    const handleVentaRegistrada = (event: Event) => {
-      console.log('Dashboard: Evento ventaRegistrada recibido!', event);
-      // Usar la referencia actualizada
-      console.log('Dashboard: Actualizando datos inmediatamente...');
+    const handleVentaRegistrada = () => {
+      // Invalidar caché y recargar
+      const cacheKey = `dashboard_resumen_${fecha}`;
+      sessionStorage.removeItem(cacheKey);
+      sessionStorage.removeItem(`${cacheKey}_time`);
       cargarDatosRef.current();
     };
     
-    const handleVentaCancelada = (event: Event) => {
-      console.log('Dashboard: Evento ventaCancelada recibido!', event);
-      // Usar la referencia actualizada
-      console.log('Dashboard: Actualizando datos inmediatamente...');
+    const handleVentaCancelada = () => {
+      // Invalidar caché y recargar
+      const cacheKey = `dashboard_resumen_${fecha}`;
+      sessionStorage.removeItem(cacheKey);
+      sessionStorage.removeItem(`${cacheKey}_time`);
       cargarDatosRef.current();
     };
 
     window.addEventListener('ventaRegistrada', handleVentaRegistrada);
     window.addEventListener('ventaCancelada', handleVentaCancelada);
-    
-    console.log('Dashboard: Listeners configurados correctamente');
 
     return () => {
       console.log('Dashboard: Limpiando listeners...');
@@ -189,9 +216,20 @@ function DashboardPage() {
         </div>
       )}
 
-      {loading && (
-        <div className="loading-container">
-          <div className="loading-spinner">Cargando datos...</div>
+      {/* Skeleton loader mejorado */}
+      {loading && !resumenDiario && periodo === 'diario' && (
+        <div className="dashboard-content">
+          <div className="summary-cards">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="summary-card skeleton">
+                <div className="card-icon skeleton-icon"></div>
+                <div className="card-content">
+                  <div className="card-label skeleton-text"></div>
+                  <div className="card-value skeleton-text"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

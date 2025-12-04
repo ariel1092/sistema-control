@@ -18,28 +18,36 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Verificar si hay un token guardado
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Intentar obtener el usuario actual
-      // Por ahora, solo verificamos que el token existe
-      // En producción, deberías validar el token con el backend
+  const [user, setUser] = useState<User | null>(() => {
+    // OPTIMIZACIÓN: Inicializar desde localStorage inmediatamente (sin esperar useEffect)
+    // Esto evita el "flash" de loading y mejora la percepción de velocidad
+    try {
       const userStr = localStorage.getItem('user');
       if (userStr) {
-        try {
-          setUser(JSON.parse(userStr));
-        } catch (e) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
+        return JSON.parse(userStr);
       }
+    } catch (e) {
+      // Si hay error, limpiar datos corruptos
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
-    setLoading(false);
-  }, []);
+    return null;
+  });
+  const [loading, setLoading] = useState(false); // Cambiar a false porque ya inicializamos desde localStorage
+
+  useEffect(() => {
+    // Validar token en background (no bloquea el render inicial)
+    const token = localStorage.getItem('token');
+    if (token && user) {
+      // Opcional: Validar token con backend en background
+      // Por ahora solo verificamos que existe
+      // En el futuro se puede agregar validación asíncrona aquí
+    } else if (token && !user) {
+      // Si hay token pero no user, limpiar
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+  }, [user]);
 
   const login = async (email: string, password: string) => {
     const response = await authApi.login(email, password);
