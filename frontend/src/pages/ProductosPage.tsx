@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { productosApi } from '../services/api';
 import { format } from 'date-fns';
-import { useAuth } from '../contexts/AuthContext';
 import './ProductosPage.css';
 
 interface Producto {
@@ -34,7 +33,6 @@ interface MovimientoStock {
 }
 
 function ProductosPage() {
-  const { user } = useAuth();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoStock[]>([]);

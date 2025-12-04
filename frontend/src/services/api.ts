@@ -87,7 +87,7 @@ export const ventasApi = {
 export const productosApi = {
   buscar: (termino: string) =>
     api.get(`/productos?q=${encodeURIComponent(termino)}`),
-  obtenerTodos: (activos?: boolean) =>
+  obtenerTodos: () =>
     api.get(`/productos?all=true`),
   obtenerPorId: (id: string) =>
     api.get(`/productos/${id}`),

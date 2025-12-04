@@ -16,14 +16,6 @@ interface ResumenCaja {
   observaciones?: string;
 }
 
-interface MovimientoCaja {
-  id: string;
-  tipo: 'INGRESO' | 'SALIDA';
-  monto: number;
-  motivo: string;
-  createdAt: string;
-}
-
 function CajaPage() {
   const { user } = useAuth();
   const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'));

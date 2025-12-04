@@ -107,7 +107,6 @@ function ProveedoresPage() {
   const [showModalDetalleFactura, setShowModalDetalleFactura] = useState(false);
   const [facturaSeleccionada, setFacturaSeleccionada] = useState<any>(null);
   const [detalleFactura, setDetalleFactura] = useState<any>(null);
-  const [montoPago, setMontoPago] = useState('');
   const [pagarTotal, setPagarTotal] = useState(true);
   const [montoPagoFactura, setMontoPagoFactura] = useState('');
   const [showModalFactura, setShowModalFactura] = useState(false);
@@ -729,7 +728,8 @@ function ProveedoresPage() {
                                     className="btn-small btn-primary"
                                     onClick={() => {
                                       setFacturaSeleccionada(factura);
-                                      setMontoPago(factura.saldoPendiente.toString());
+                                      setMontoPagoFactura(factura.saldoPendiente.toString());
+                                      setPagarTotal(true);
                                       setShowModalPago(true);
                                     }}
                                   >
@@ -885,14 +885,14 @@ function ProveedoresPage() {
                 <div className="form-group">
                   <label>Proveedor *</label>
                   <select
-                    value={proveedorParaFactura?.id || ''}
+                    value=""
                     onChange={(e) => {
                       const proveedor = proveedores.find(p => p.id === e.target.value);
                       setProveedorParaFactura(proveedor || null);
                       if (proveedor) {
                         setFormDataFactura({
                           ...formDataFactura,
-                          descuento: (proveedor as any).descuento?.toString() || '0',
+                          descuento: proveedor.descuento?.toString() || '0',
                         });
                       }
                     }}
