@@ -14,7 +14,7 @@ export class FacturaProveedorMongo {
   @Prop({ required: true, type: Date, index: true })
   fecha: Date;
 
-  @Prop({ required: true, type: Date, index: true })
+  @Prop({ required: true, type: Date })
   fechaVencimiento: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'RemitoProveedor' })

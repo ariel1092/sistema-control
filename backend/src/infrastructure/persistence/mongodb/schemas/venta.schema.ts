@@ -87,5 +87,6 @@ export const VentaSchema = SchemaFactory.createForClass(VentaMongo);
 VentaSchema.index({ vendedorId: 1, fecha: -1 });
 VentaSchema.index({ estado: 1, fecha: -1 });
 VentaSchema.index({ fecha: -1, estado: 1 }); // Para reportes por rango de fechas
+VentaSchema.index({ fecha: -1, estado: 1, tipoComprobante: 1 }); // Índice compuesto para reportes avanzados
 VentaSchema.index({ createdAt: -1 }); // Para ordenamiento rápido
 

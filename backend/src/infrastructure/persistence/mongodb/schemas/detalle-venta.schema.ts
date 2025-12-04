@@ -5,10 +5,10 @@ export type DetalleVentaDocument = DetalleVentaMongo & Document;
 
 @Schema({ collection: 'detalle_ventas', timestamps: true })
 export class DetalleVentaMongo {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Venta', index: true })
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Venta' })
   ventaId: Types.ObjectId;
 
-  @Prop({ required: false, type: Types.ObjectId, ref: 'Producto', index: true })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Producto' })
   productoId?: Types.ObjectId;
 
   @Prop({ required: true })
@@ -32,9 +32,9 @@ export class DetalleVentaMongo {
 
 export const DetalleVentaSchema = SchemaFactory.createForClass(DetalleVentaMongo);
 
-// Índices
-DetalleVentaSchema.index({ ventaId: 1 });
-DetalleVentaSchema.index({ productoId: 1 });
+// Índices optimizados
+// NOTA: ventaId y productoId ya tienen index: true en @Prop, pero agregamos compuestos para queries complejas
+DetalleVentaSchema.index({ ventaId: 1, productoId: 1 }); // Índice compuesto para joins eficientes
 
 
 

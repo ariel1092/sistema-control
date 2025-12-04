@@ -57,8 +57,8 @@ export class CreateVentaUseCase {
 
     // Permitir ventas sin productos (solo registro de pago)
     if (dto.items && dto.items.length > 0) {
-      for (const item of dto.items) {
-        // Validar que el productoId sea válido
+      // OPTIMIZACIÓN: Validar IDs primero (síncrono)
+      const productoIds = dto.items.map((item) => {
         if (!item.productoId || item.productoId.trim() === '' || item.productoId === 'string') {
           throw new VentaApplicationException(
             `ID de producto inválido: "${item.productoId}". Debe ser un ObjectId válido de MongoDB.`,
@@ -66,8 +66,29 @@ export class CreateVentaUseCase {
             'PRODUCTO_ID_INVALIDO',
           );
         }
+        return item.productoId;
+      });
 
-        const producto = await this.productoRepository.findById(item.productoId);
+      // OPTIMIZACIÓN: Cargar todos los productos en un solo query (paralelo)
+      const productos = await this.productoRepository.findByIds(productoIds);
+
+      // Validar que todos los productos existan
+      if (productos.length !== productoIds.length) {
+        const productosEncontrados = new Set(productos.map((p) => p.id));
+        const productosFaltantes = productoIds.filter((id) => !productosEncontrados.has(id));
+        throw new VentaApplicationException(
+          `Productos no encontrados: ${productosFaltantes.join(', ')}`,
+          404,
+          'PRODUCTO_NO_ENCONTRADO',
+        );
+      }
+
+      // Crear un mapa para acceso rápido O(1)
+      const productosMap = new Map(productos.map((p) => [p.id!, p]));
+
+      // Validar y crear detalles (síncrono, ya tenemos todos los productos)
+      for (const item of dto.items) {
+        const producto = productosMap.get(item.productoId);
 
         if (!producto) {
           throw new VentaApplicationException(
@@ -208,15 +229,18 @@ export class CreateVentaUseCase {
     const ventaGuardada = await this.ventaRepository.save(venta);
 
     // 5. Descontar stock de cada producto SOLO si NO es presupuesto y hay detalles
+    // OPTIMIZACIÓN: Ejecutar descuentos de stock en paralelo
     if (!esPresupuesto && detalles.length > 0) {
-      for (const detalle of detalles) {
-        await this.registrarVentaStockUseCase.execute(
-          detalle.productoId,
-          detalle.cantidad,
-          ventaGuardada.id!,
-          vendedorId,
-        );
-      }
+      await Promise.all(
+        detalles.map((detalle) =>
+          this.registrarVentaStockUseCase.execute(
+            detalle.productoId,
+            detalle.cantidad,
+            ventaGuardada.id!,
+            vendedorId,
+          ),
+        ),
+      );
     }
 
     // 7. TODO: Si es cuenta corriente, actualizar saldo del cliente

@@ -6,10 +6,10 @@ export type MovimientoStockDocument = MovimientoStockMongo & Document;
 
 @Schema({ collection: 'movimientos_stock', timestamps: true })
 export class MovimientoStockMongo {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'ProductoMongo', index: true })
+  @Prop({ required: true, type: Types.ObjectId, ref: 'ProductoMongo' })
   productoId: Types.ObjectId;
 
-  @Prop({ required: true, enum: TipoMovimientoStock, index: true })
+  @Prop({ required: true, enum: TipoMovimientoStock })
   tipo: TipoMovimientoStock;
 
   @Prop({ required: true })
