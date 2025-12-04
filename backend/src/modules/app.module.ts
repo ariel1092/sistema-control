@@ -12,6 +12,7 @@ import { RetirosSociosModule } from './retiros-socios/retiros-socios.module';
 import { ProveedoresModule } from './proveedores/proveedores.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from '../presentation/controllers/health.controller';
+import { IndexController } from '../presentation/controllers/index.controller';
 
 @Module({
   imports: [
@@ -27,6 +28,6 @@ import { HealthController } from '../presentation/controllers/health.controller'
     RetirosSociosModule,
     ProveedoresModule,
   ],
-  controllers: [HealthController],
+  controllers: [IndexController, HealthController],
 })
 export class AppModule {}
