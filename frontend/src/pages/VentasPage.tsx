@@ -339,23 +339,22 @@ function VentasPage() {
                 <div className="ventas-recientes">
                   <div className="ventas-lista">
                     {todasVentasEfectivo.slice(0, 5).map((venta) => (
-                        <div key={venta.id} className="venta-item">
-                          <div className="venta-info">
-                            <span className="venta-monto">{formatearMonto(venta.metodosPago?.[0]?.monto || 0)}</span>
-                            <span className="venta-fecha-hora">
-                              {venta.createdAt ? format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm') : 'Sin fecha'}
-                            </span>
-                          </div>
-                          <button
-                            className="btn-undo"
-                            onClick={() => deshacerVenta(venta.id)}
-                            title="Deshacer venta"
-                          >
-                            ↶
-                          </button>
+                      <div key={venta.id} className="venta-item">
+                        <div className="venta-info">
+                          <span className="venta-monto">{formatearMonto(venta.metodosPago?.[0]?.monto || 0)}</span>
+                          <span className="venta-fecha-hora">
+                            {venta.createdAt ? format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm') : 'Sin fecha'}
+                          </span>
                         </div>
-                      );
-                    })}
+                        <button
+                          className="btn-undo"
+                          onClick={() => deshacerVenta(venta.id)}
+                          title="Deshacer venta"
+                        >
+                          ↶
+                        </button>
+                      </div>
+                    ))}
                   </div>
                   {todasVentasEfectivo.length > 5 && (
                     <button
