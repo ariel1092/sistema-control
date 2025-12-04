@@ -1,17 +1,20 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import DashboardPage from './pages/DashboardPage';
-import VentasPage from './pages/VentasPage';
-import ProductosPage from './pages/ProductosPage';
-import CajaPage from './pages/CajaPage';
-import ClientesPage from './pages/ClientesPage';
-import EmpleadosPage from './pages/EmpleadosPage';
-import GastosPage from './pages/GastosPage';
-import ReportesPage from './pages/ReportesPage';
-import ProveedoresPage from './pages/ProveedoresPage';
-import LoginPage from './pages/LoginPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './App.css';
+
+// OPTIMIZACIÓN: Lazy loading de páginas para code splitting
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const VentasPage = lazy(() => import('./pages/VentasPage'));
+const ProductosPage = lazy(() => import('./pages/ProductosPage'));
+const CajaPage = lazy(() => import('./pages/CajaPage'));
+const ClientesPage = lazy(() => import('./pages/ClientesPage'));
+const EmpleadosPage = lazy(() => import('./pages/EmpleadosPage'));
+const GastosPage = lazy(() => import('./pages/GastosPage'));
+const ReportesPage = lazy(() => import('./pages/ReportesPage'));
+const ProveedoresPage = lazy(() => import('./pages/ProveedoresPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -38,31 +41,49 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Componente de loading para Suspense
+const PageLoader = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    minHeight: '50vh',
+    fontSize: '18px',
+    color: '#6b7280'
+  }}>
+    Cargando...
+  </div>
+);
+
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/ventas" element={<VentasPage />} />
-                <Route path="/productos" element={<ProductosPage />} />
-                <Route path="/caja" element={<CajaPage />} />
-                <Route path="/clientes" element={<ClientesPage />} />
-                <Route path="/empleados" element={<EmpleadosPage />} />
-                <Route path="/gastos" element={<GastosPage />} />
-                <Route path="/reportes" element={<ReportesPage />} />
-                <Route path="/proveedores" element={<ProveedoresPage />} />
-              </Routes>
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route path="/" element={<DashboardPage />} />
+                    <Route path="/ventas" element={<VentasPage />} />
+                    <Route path="/productos" element={<ProductosPage />} />
+                    <Route path="/caja" element={<CajaPage />} />
+                    <Route path="/clientes" element={<ClientesPage />} />
+                    <Route path="/empleados" element={<EmpleadosPage />} />
+                    <Route path="/gastos" element={<GastosPage />} />
+                    <Route path="/reportes" element={<ReportesPage />} />
+                    <Route path="/proveedores" element={<ProveedoresPage />} />
+                  </Routes>
+                </Suspense>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
 

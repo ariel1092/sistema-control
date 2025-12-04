@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format } from 'date-fns'; // date-fns v3 ya hace tree-shaking automático
 import { ventasApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import './VentasPage.css';
@@ -36,14 +36,7 @@ function VentasPage() {
   
   // Calcular total del día
   const totalVentasDia = useMemo(() => {
-    const total = resumenEfectivo + resumenTransferencias + resumenCreditoDebito;
-    console.log('[VentasPage] Total del día calculado:', {
-      efectivo: resumenEfectivo,
-      transferencias: resumenTransferencias,
-      creditoDebito: resumenCreditoDebito,
-      total
-    });
-    return total;
+    return resumenEfectivo + resumenTransferencias + resumenCreditoDebito;
   }, [resumenEfectivo, resumenTransferencias, resumenCreditoDebito]);
 
   // Ventas recientes para deshacer (todas las ventas)
@@ -87,7 +80,6 @@ function VentasPage() {
       );
       setResumenEfectivo(totalEfectivo);
       setTodasVentasEfectivo(ventasEfectivo); // Guardar todas las ventas
-      console.log('Ventas efectivo cargadas:', ventasEfectivo.length, ventasEfectivo);
 
       // Calcular totales de transferencias (todas juntas)
       const ventasTransferencias = ventas
@@ -179,14 +171,10 @@ function VentasPage() {
       await cargarResumenes();
       
       // Notificar al Dashboard que hay una nueva venta (usando evento personalizado)
-      console.log('VentasPage: Disparando evento ventaRegistrada...');
-      const evento = new CustomEvent('ventaRegistrada', { 
+      window.dispatchEvent(new CustomEvent('ventaRegistrada', { 
         detail: { monto: montoFinal, tipo: tipo },
         bubbles: true,
-        cancelable: true
-      });
-      window.dispatchEvent(evento);
-      console.log('VentasPage: Evento ventaRegistrada disparado');
+      }));
       
       // También intentar actualizar directamente si el Dashboard está en la misma ventana
       // Esto es un fallback en caso de que los eventos no funcionen
@@ -218,7 +206,6 @@ function VentasPage() {
       await cargarResumenes();
       
       // Notificar al Dashboard que se canceló una venta
-      console.log('Disparando evento ventaCancelada...');
       window.dispatchEvent(new CustomEvent('ventaCancelada', { 
         detail: { ventaId } 
       }));
@@ -270,14 +257,12 @@ function VentasPage() {
   };
 
   const abrirModal = (tipo: string, todasLasVentas: VentaReciente[], titulo: string) => {
-    console.log('Abriendo modal:', tipo, 'con', todasLasVentas.length, 'ventas');
     setVentasModal(todasLasVentas);
     setModalAbierto(tipo);
     setTituloModal(titulo);
   };
 
   const cerrarModal = () => {
-    console.log('Cerrando modal');
     setModalAbierto(null);
     setVentasModal([]);
     setTituloModal('');
@@ -353,9 +338,7 @@ function VentasPage() {
               {todasVentasEfectivo.length > 0 ? (
                 <div className="ventas-recientes">
                   <div className="ventas-lista">
-                    {todasVentasEfectivo.slice(0, 5).map((venta) => {
-                      console.log('Renderizando venta:', venta);
-                      return (
+                    {todasVentasEfectivo.slice(0, 5).map((venta) => (
                         <div key={venta.id} className="venta-item">
                           <div className="venta-info">
                             <span className="venta-monto">{formatearMonto(venta.metodosPago?.[0]?.monto || 0)}</span>
