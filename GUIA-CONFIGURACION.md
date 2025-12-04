@@ -39,6 +39,7 @@ Completa el formulario con estos datos:
   - ⚠️ **IMPORTANTE**: Reemplaza `tu-dominio.com` con tu dominio real
   - Ejemplo: `https://ventas-ferreteria.onrender.com/api/v1/health`
   - Ejemplo: `https://api.mi-ferreteria.com/api/v1/health`
+  - **Nota**: También puedes usar `/` (raíz) que ahora responde correctamente
 
 **Monitoring Interval:**
 - Selecciona: **5 minutes** (gratis permite hasta 50 monitores)

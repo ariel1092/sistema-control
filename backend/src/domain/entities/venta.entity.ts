@@ -199,6 +199,11 @@ export class Venta {
       const dia = ahora.getDate(); // Usar getDate() local, no UTC
       // Crear fecha en UTC pero con el día/mes/año de la fecha local actual
       fechaVenta = new Date(Date.UTC(año, mes, dia, 0, 0, 0, 0));
+      
+      // DEBUG: Log para verificar la fecha que se está guardando
+      console.log(`[Venta.crear] Fecha actual del servidor (local): ${ahora.toISOString()}`);
+      console.log(`[Venta.crear] Fecha que se guardará (UTC normalizada): ${fechaVenta.toISOString()}`);
+      console.log(`[Venta.crear] Año: ${año}, Mes: ${mes}, Día: ${dia}`);
     }
 
     return new Venta(

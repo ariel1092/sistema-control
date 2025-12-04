@@ -21,6 +21,10 @@ export class VentaRepository implements IVentaRepository {
     const { venta: ventaDoc, detalles: detallesDocs } =
       VentaMapper.toPersistence(venta);
 
+    // DEBUG: Log para verificar la fecha que se está guardando
+    console.log(`[VentaRepository.save] Guardando venta con fecha: ${ventaDoc.fecha.toISOString()}`);
+    console.log(`[VentaRepository.save] Número de venta: ${ventaDoc.numero}`);
+
     // Guardar o actualizar venta
     let ventaGuardada;
     if (venta.id) {
@@ -34,6 +38,7 @@ export class VentaRepository implements IVentaRepository {
       }).exec();
     } else {
       ventaGuardada = await this.ventaModel.create(ventaDoc);
+      console.log(`[VentaRepository.save] Venta guardada con ID: ${ventaGuardada._id}, fecha en BD: ${ventaGuardada.fecha.toISOString()}`);
     }
 
     // Guardar detalles
@@ -133,12 +138,21 @@ export class VentaRepository implements IVentaRepository {
 
     console.log(`[VentaRepository] Ventas encontradas en MongoDB: ${ventasDocs.length}`);
     
-    // DEBUG: Mostrar fechas de las primeras 5 ventas para verificar
+    // DEBUG: Mostrar fechas de todas las ventas para verificar
     if (ventasDocs.length > 0) {
-      console.log(`[VentaRepository] Primeras 5 fechas de ventas encontradas:`);
-      ventasDocs.slice(0, 5).forEach((v, i) => {
-        console.log(`  ${i + 1}. ${v.fecha.toISOString()}`);
+      console.log(`[VentaRepository] Fechas de todas las ventas encontradas:`);
+      ventasDocs.forEach((v, i) => {
+        console.log(`  ${i + 1}. ${v.fecha.toISOString()} (dentro del rango: ${inicio.toISOString()} - ${fin.toISOString()})`);
       });
+    } else {
+      // Si no hay ventas, buscar todas las ventas recientes para debug
+      const todasLasVentas = await this.ventaModel.find().sort({ fecha: -1 }).limit(5).exec();
+      if (todasLasVentas.length > 0) {
+        console.log(`[VentaRepository] DEBUG: Últimas 5 ventas en la BD (sin filtro de fecha):`);
+        todasLasVentas.forEach((v, i) => {
+          console.log(`  ${i + 1}. Fecha: ${v.fecha.toISOString()}, Número: ${v.numero}`);
+        });
+      }
     }
 
     const ventas: Venta[] = [];
