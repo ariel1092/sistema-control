@@ -36,14 +36,18 @@ export class ProductosController {
   @Get()
   @ApiOperation({ summary: 'Buscar o listar productos' })
   @ApiResponse({ status: 200, description: 'Lista de productos' })
-  async search(@Query('q') termino?: string, @Query('all') all?: string) {
+  async search(@Query('q') termino?: string, @Query('all') all?: string, @Query('activos') activos?: string) {
     if (all === 'true') {
-      return this.getAllProductosUseCase.execute(true); // Solo activos
+      // Si se especifica activos, usar ese valor, sino solo activos por defecto
+      const soloActivos = activos !== undefined ? activos === 'true' : true;
+      return this.getAllProductosUseCase.execute(soloActivos);
     }
     if (termino) {
       return this.searchProductoUseCase.execute(termino);
     }
-    return this.getAllProductosUseCase.execute(true);
+    // Por defecto, devolver todos (activos e inactivos) si no se especifica 'all'
+    const soloActivos = activos !== undefined ? activos === 'true' : undefined;
+    return this.getAllProductosUseCase.execute(soloActivos);
   }
 
   @Get('alertas')

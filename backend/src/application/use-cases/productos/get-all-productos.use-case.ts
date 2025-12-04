@@ -19,14 +19,22 @@ export class GetAllProductosUseCase {
     // Intentar obtener del caché
     const cached = await this.cacheManager.get<Producto[]>(cacheKey);
     if (cached) {
-      return cached;
+      // Si el caché tiene un array vacío, puede ser un cache miss anterior
+      // Invalidar y buscar de nuevo
+      if (cached.length === 0) {
+        await this.cacheManager.del(cacheKey);
+      } else {
+        return cached;
+      }
     }
 
     // Si no está en caché, obtener de la BD
     const productos = await this.productoRepository.findAll(activos);
     
-    // Guardar en caché por 10 minutos (600 segundos)
-    await this.cacheManager.set(cacheKey, productos, 600);
+    // Solo guardar en caché si hay productos (evitar cachear arrays vacíos)
+    if (productos.length > 0) {
+      await this.cacheManager.set(cacheKey, productos, 600);
+    }
     
     return productos;
   }
