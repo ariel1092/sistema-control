@@ -21,11 +21,7 @@ export class VentasController {
   @ApiOperation({ summary: 'Obtener ventas recientes por fecha' })
   async findAll(@Query('fecha') fecha?: string) {
     if (fecha) {
-      // DEBUG: Log para verificar la fecha que se está consultando
-      console.log(`[VentasController] Fecha recibida del frontend: ${fecha}`);
       const fechaDate = new Date(fecha);
-      console.log(`[VentasController] Fecha parseada: ${fechaDate.toISOString()}`);
-      console.log(`[VentasController] Fecha local del servidor: ${new Date().toISOString()}`);
       const ventas = await this.getVentasRecientesUseCase.execute(fechaDate);
       // Mapear entidades a objetos planos para la respuesta
       return ventas.map(venta => ({

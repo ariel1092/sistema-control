@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { IVentaRepository } from '../../ports/venta.repository.interface';
 import { Venta } from '../../../domain/entities/venta.entity';
 import { EstadoVenta } from '../../../domain/enums/estado-venta.enum';
@@ -9,6 +11,7 @@ export class GetVentasRecientesUseCase {
   constructor(
     @Inject('IVentaRepository')
     private readonly ventaRepository: IVentaRepository,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async execute(fecha?: Date, tipoMetodoPago?: TipoMetodoPago): Promise<Venta[]> {
@@ -20,6 +23,19 @@ export class GetVentasRecientesUseCase {
     const dia = fechaBusqueda.getUTCDate();
     const fechaInicio = new Date(Date.UTC(año, mes, dia, 0, 0, 0, 0));
     const fechaFin = new Date(Date.UTC(año, mes, dia, 23, 59, 59, 999));
+
+    // Generar clave de caché única por fecha y tipo de pago
+    const fechaKey = `${año}-${mes + 1}-${dia}`;
+    const cacheKey = `ventas:${fechaKey}:${tipoMetodoPago || 'all'}`;
+    
+    // Intentar obtener del caché (solo para fechas pasadas, no para hoy)
+    const esHoy = fechaBusqueda.toDateString() === new Date().toDateString();
+    if (!esHoy) {
+      const cached = await this.cacheManager.get<Venta[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
 
     const ventas = await this.ventaRepository.findByRangoFechas(
       fechaInicio,
@@ -39,9 +55,17 @@ export class GetVentasRecientesUseCase {
     }
 
     // Ordenar por fecha más reciente primero
-    return ventasFiltradas.sort(
+    const resultado = ventasFiltradas.sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
     );
+
+    // Guardar en caché solo si no es hoy (las ventas de hoy cambian constantemente)
+    // TTL de 5 minutos para fechas pasadas
+    if (!esHoy) {
+      await this.cacheManager.set(cacheKey, resultado, 300);
+    }
+
+    return resultado;
   }
 }
 

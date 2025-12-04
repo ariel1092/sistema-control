@@ -33,6 +33,14 @@ export const getDatabaseConfig = (): MongooseModuleOptions => {
     ...(mongodbDbName && { dbName: mongodbDbName }),
     retryWrites: true,
     w: 'majority',
+    // Optimización de pooling para reducir latencia
+    maxPoolSize: 50, // Máximo de conexiones simultáneas
+    minPoolSize: 10, // Mantener conexiones vivas (reduce cold starts)
+    maxIdleTimeMS: 30000, // Cerrar conexiones idle después de 30s
+    serverSelectionTimeoutMS: 5000, // Timeout para seleccionar servidor
+    socketTimeoutMS: 45000, // Timeout para operaciones de socket
+    connectTimeoutMS: 10000, // Timeout para conexión inicial
+    heartbeatFrequencyMS: 10000, // Frecuencia de heartbeat para mantener conexiones
   };
 };
 

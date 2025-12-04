@@ -21,9 +21,7 @@ export class VentaRepository implements IVentaRepository {
     const { venta: ventaDoc, detalles: detallesDocs } =
       VentaMapper.toPersistence(venta);
 
-    // DEBUG: Log para verificar la fecha que se está guardando
-    console.log(`[VentaRepository.save] Guardando venta con fecha: ${ventaDoc.fecha.toISOString()}`);
-    console.log(`[VentaRepository.save] Número de venta: ${ventaDoc.numero}`);
+    // Logs removidos en producción para mejorar performance
 
     // Guardar o actualizar venta
     let ventaGuardada;
@@ -38,7 +36,6 @@ export class VentaRepository implements IVentaRepository {
       }).exec();
     } else {
       ventaGuardada = await this.ventaModel.create(ventaDoc);
-      console.log(`[VentaRepository.save] Venta guardada con ID: ${ventaGuardada._id}, fecha en BD: ${ventaGuardada.fecha.toISOString()}`);
     }
 
     // Guardar detalles
@@ -90,14 +87,31 @@ export class VentaRepository implements IVentaRepository {
       .sort({ fecha: -1 })
       .exec();
 
-    const ventas: Venta[] = [];
-
-    for (const ventaDoc of ventasDocs) {
-      const detallesDocs = await this.detalleVentaModel
-        .find({ ventaId: ventaDoc._id })
-        .exec();
-      ventas.push(VentaMapper.toDomain(ventaDoc, detallesDocs));
+    // OPTIMIZACIÓN: Eliminar N+1 queries - cargar todos los detalles en un solo query
+    if (ventasDocs.length === 0) {
+      return [];
     }
+
+    const ventaIds = ventasDocs.map((v) => v._id);
+    const todosDetalles = await this.detalleVentaModel
+      .find({ ventaId: { $in: ventaIds } })
+      .exec();
+
+    // Agrupar detalles por ventaId en memoria
+    const detallesPorVenta = new Map<string, typeof todosDetalles>();
+    todosDetalles.forEach((detalle) => {
+      const ventaIdStr = detalle.ventaId.toString();
+      if (!detallesPorVenta.has(ventaIdStr)) {
+        detallesPorVenta.set(ventaIdStr, []);
+      }
+      detallesPorVenta.get(ventaIdStr)!.push(detalle);
+    });
+
+    // Mapear ventas con sus detalles
+    const ventas: Venta[] = ventasDocs.map((ventaDoc) => {
+      const detallesDocs = detallesPorVenta.get(ventaDoc._id.toString()) || [];
+      return VentaMapper.toDomain(ventaDoc, detallesDocs);
+    });
 
     return ventas;
   }
@@ -123,8 +137,7 @@ export class VentaRepository implements IVentaRepository {
       fin = new Date(Date.UTC(hasta.getFullYear(), hasta.getMonth(), hasta.getDate(), 23, 59, 59, 999));
     }
 
-    // DEBUG: Log para verificar el rango de fechas consultado
-    console.log(`[VentaRepository] Consultando ventas desde: ${inicio.toISOString()} hasta: ${fin.toISOString()}`);
+    // Logs removidos en producción para mejorar performance
 
     const ventasDocs = await this.ventaModel
       .find({
@@ -136,33 +149,31 @@ export class VentaRepository implements IVentaRepository {
       .sort({ fecha: -1 })
       .exec();
 
-    console.log(`[VentaRepository] Ventas encontradas en MongoDB: ${ventasDocs.length}`);
-    
-    // DEBUG: Mostrar fechas de todas las ventas para verificar
-    if (ventasDocs.length > 0) {
-      console.log(`[VentaRepository] Fechas de todas las ventas encontradas:`);
-      ventasDocs.forEach((v, i) => {
-        console.log(`  ${i + 1}. ${v.fecha.toISOString()} (dentro del rango: ${inicio.toISOString()} - ${fin.toISOString()})`);
-      });
-    } else {
-      // Si no hay ventas, buscar todas las ventas recientes para debug
-      const todasLasVentas = await this.ventaModel.find().sort({ fecha: -1 }).limit(5).exec();
-      if (todasLasVentas.length > 0) {
-        console.log(`[VentaRepository] DEBUG: Últimas 5 ventas en la BD (sin filtro de fecha):`);
-        todasLasVentas.forEach((v, i) => {
-          console.log(`  ${i + 1}. Fecha: ${v.fecha.toISOString()}, Número: ${v.numero}`);
-        });
+    // OPTIMIZACIÓN: Eliminar N+1 queries - cargar todos los detalles en un solo query
+    if (ventasDocs.length === 0) {
+      return [];
+    }
+
+    const ventaIds = ventasDocs.map((v) => v._id);
+    const todosDetalles = await this.detalleVentaModel
+      .find({ ventaId: { $in: ventaIds } })
+      .exec();
+
+    // Agrupar detalles por ventaId en memoria
+    const detallesPorVenta = new Map<string, typeof todosDetalles>();
+    todosDetalles.forEach((detalle) => {
+      const ventaIdStr = detalle.ventaId.toString();
+      if (!detallesPorVenta.has(ventaIdStr)) {
+        detallesPorVenta.set(ventaIdStr, []);
       }
-    }
+      detallesPorVenta.get(ventaIdStr)!.push(detalle);
+    });
 
-    const ventas: Venta[] = [];
-
-    for (const ventaDoc of ventasDocs) {
-      const detallesDocs = await this.detalleVentaModel
-        .find({ ventaId: ventaDoc._id })
-        .exec();
-      ventas.push(VentaMapper.toDomain(ventaDoc, detallesDocs));
-    }
+    // Mapear ventas con sus detalles
+    const ventas: Venta[] = ventasDocs.map((ventaDoc) => {
+      const detallesDocs = detallesPorVenta.get(ventaDoc._id.toString()) || [];
+      return VentaMapper.toDomain(ventaDoc, detallesDocs);
+    });
 
     return ventas;
   }
@@ -197,14 +208,31 @@ export class VentaRepository implements IVentaRepository {
       .sort({ fecha: -1 })
       .exec();
 
-    const ventas: Venta[] = [];
-
-    for (const ventaDoc of ventasDocs) {
-      const detallesDocs = await this.detalleVentaModel
-        .find({ ventaId: ventaDoc._id })
-        .exec();
-      ventas.push(VentaMapper.toDomain(ventaDoc, detallesDocs));
+    // OPTIMIZACIÓN: Eliminar N+1 queries - cargar todos los detalles en un solo query
+    if (ventasDocs.length === 0) {
+      return [];
     }
+
+    const ventaIds = ventasDocs.map((v) => v._id);
+    const todosDetalles = await this.detalleVentaModel
+      .find({ ventaId: { $in: ventaIds } })
+      .exec();
+
+    // Agrupar detalles por ventaId en memoria
+    const detallesPorVenta = new Map<string, typeof todosDetalles>();
+    todosDetalles.forEach((detalle) => {
+      const ventaIdStr = detalle.ventaId.toString();
+      if (!detallesPorVenta.has(ventaIdStr)) {
+        detallesPorVenta.set(ventaIdStr, []);
+      }
+      detallesPorVenta.get(ventaIdStr)!.push(detalle);
+    });
+
+    // Mapear ventas con sus detalles
+    const ventas: Venta[] = ventasDocs.map((ventaDoc) => {
+      const detallesDocs = detallesPorVenta.get(ventaDoc._id.toString()) || [];
+      return VentaMapper.toDomain(ventaDoc, detallesDocs);
+    });
 
     return ventas;
   }

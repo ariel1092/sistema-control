@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DatabaseModule } from './database/database.module';
+import { CacheModule } from './cache/cache.module';
 import { VentasModule } from './ventas/ventas.module';
 import { ProductosModule } from './productos/productos.module';
 import { CajaModule } from './caja/caja.module';
@@ -17,6 +18,7 @@ import { IndexController } from '../presentation/controllers/index.controller';
 @Module({
   imports: [
     DatabaseModule,
+    CacheModule,
     AuthModule,
     VentasModule,
     ProductosModule,
