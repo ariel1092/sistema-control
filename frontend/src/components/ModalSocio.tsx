@@ -70,7 +70,7 @@ function ModalSocio({ socio, total, transferenciasRecibidas = 0, onClose }: Moda
   const cargarRetiros = async () => {
     try {
       const fechaHoy = format(new Date(), 'yyyy-MM-dd');
-      const response = await retirosApi.obtenerTodos(socio, fechaHoy, fechaHoy);
+      const response = await retirosApi.obtenerTodos(fechaHoy, fechaHoy);
       setRetiros(response.data || []);
     } catch (err: any) {
       console.error('Error al cargar retiros:', err);
@@ -168,11 +168,9 @@ function ModalSocio({ socio, total, transferenciasRecibidas = 0, onClose }: Moda
                   <label>Monto del Retiro *</label>
                   <input
                     type="number"
-                    step="0.01"
-                    min="0"
                     value={formRetiro.monto}
                     onChange={(e) => setFormRetiro({ ...formRetiro, monto: e.target.value })}
-                    placeholder="0.00"
+                    placeholder="0"
                     required
                   />
                 </div>

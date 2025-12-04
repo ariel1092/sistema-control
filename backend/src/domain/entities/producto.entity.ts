@@ -14,6 +14,7 @@ export class Producto {
     public readonly descripcion?: string,
     public readonly marca?: string,
     public precioCosto?: number,
+    public readonly codigoBarras?: string,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date(),
   ) {
@@ -117,6 +118,7 @@ export class Producto {
     descripcion?: string;
     marca?: string;
     precioCosto?: number;
+    codigoBarras?: string;
     activo?: boolean;
   }): Producto {
     return new Producto(
@@ -132,6 +134,7 @@ export class Producto {
       params.descripcion,
       params.marca,
       params.precioCosto,
+      params.codigoBarras,
     );
   }
 }

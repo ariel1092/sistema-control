@@ -25,10 +25,15 @@ export class CreateProveedorUseCase {
       vendedorAsignado: dto.vendedorAsignado,
       activo: dto.activo !== undefined ? dto.activo : true,
       observaciones: dto.observaciones,
+      plazoCuentaCorriente: dto.plazoCuentaCorriente,
+      descuento: dto.descuento,
     });
 
     return await this.proveedorRepository.save(proveedor);
   }
 }
+
+
+
 
 

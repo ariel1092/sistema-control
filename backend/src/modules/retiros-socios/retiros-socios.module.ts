@@ -26,3 +26,9 @@ import { RetiroSocioMongo, RetiroSocioSchema } from '../../infrastructure/persis
 export class RetirosSociosModule {}
 
 
+
+
+
+
+
+

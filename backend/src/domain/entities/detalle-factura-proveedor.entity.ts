@@ -2,13 +2,13 @@ export class DetalleFacturaProveedor {
   constructor(
     public readonly id: string | undefined,
     public readonly facturaId: string | undefined,
-    public readonly productoId: string,
     public readonly codigoProducto: string,
     public readonly nombreProducto: string,
     public readonly cantidad: number,
     public readonly precioUnitario: number,
     public readonly descuento: number = 0,
     public readonly iva: number = 0,
+    public readonly productoId?: string,
     public readonly observaciones?: string,
     public readonly createdAt: Date = new Date(),
   ) {
@@ -25,32 +25,32 @@ export class DetalleFacturaProveedor {
     }
 
     if (this.descuento < 0 || this.descuento > 100) {
-      throw new Error('El descuento debe estar entre 0 y 100%');
+      throw new Error('Descuento debe estar entre 0 y 100%');
     }
 
-    if (this.iva < 0 || this.iva > 100) {
-      throw new Error('El IVA debe estar entre 0 y 100%');
-    }
-
-    if (!this.productoId || !this.codigoProducto || !this.nombreProducto) {
-      throw new Error('Producto ID, código y nombre son obligatorios');
+    if (!this.codigoProducto || !this.nombreProducto) {
+      throw new Error('Código y nombre del producto son obligatorios');
     }
   }
 
-  public calcularSubtotal(): number {
-    const subtotal = this.cantidad * this.precioUnitario;
-    const descuentoMonto = subtotal * (this.descuento / 100);
-    return subtotal - descuentoMonto;
+  public calcularSubtotalBruto(): number {
+    return this.cantidad * this.precioUnitario;
   }
 
-  public calcularTotalConIva(): number {
-    const subtotal = this.calcularSubtotal();
-    const ivaMonto = subtotal * (this.iva / 100);
-    return subtotal + ivaMonto;
+  public calcularDescuentoMonto(): number {
+    const subtotal = this.calcularSubtotalBruto();
+    return subtotal * (this.descuento / 100);
+  }
+
+  public calcularTotalBrutoConIva(): number {
+    const subtotal = this.calcularSubtotalBruto();
+    const descuento = this.calcularDescuentoMonto();
+    const subtotalNeto = subtotal - descuento;
+    return subtotalNeto * (1 + this.iva / 100);
   }
 
   static crear(params: {
-    productoId: string;
+    productoId?: string;
     codigoProducto: string;
     nombreProducto: string;
     cantidad: number;
@@ -62,16 +62,30 @@ export class DetalleFacturaProveedor {
     return new DetalleFacturaProveedor(
       undefined,
       undefined,
-      params.productoId,
       params.codigoProducto,
       params.nombreProducto,
       params.cantidad,
       params.precioUnitario,
       params.descuento || 0,
       params.iva || 0,
+      params.productoId,
       params.observaciones,
     );
   }
+
+  public asignarFactura(facturaId: string): DetalleFacturaProveedor {
+    return new DetalleFacturaProveedor(
+      this.id,
+      facturaId,
+      this.codigoProducto,
+      this.nombreProducto,
+      this.cantidad,
+      this.precioUnitario,
+      this.descuento,
+      this.iva,
+      this.productoId,
+      this.observaciones,
+      this.createdAt,
+    );
+  }
 }
-
-

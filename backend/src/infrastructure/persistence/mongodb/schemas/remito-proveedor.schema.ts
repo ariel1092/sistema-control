@@ -34,3 +34,6 @@ RemitoProveedorSchema.index({ proveedorId: 1, fecha: -1 });
 RemitoProveedorSchema.index({ facturado: 1, fecha: -1 });
 
 
+
+
+

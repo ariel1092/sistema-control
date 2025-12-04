@@ -24,3 +24,9 @@ import { RetirosSociosModule } from '../retiros-socios/retiros-socios.module';
 export class ReportesModule {}
 
 
+
+
+
+
+
+

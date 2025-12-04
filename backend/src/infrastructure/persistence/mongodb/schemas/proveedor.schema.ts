@@ -1,7 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { CategoriaProveedor } from '../../../../domain/enums/categoria-proveedor.enum';
-import { FormaPagoProveedor } from '../../../../domain/enums/forma-pago-proveedor.enum';
 
 export type ProveedorDocument = ProveedorMongo & Document;
 
@@ -10,46 +8,50 @@ export class ProveedorMongo {
   @Prop({ required: true, index: true })
   nombre: string;
 
-  @Prop()
+  @Prop({ required: false })
   razonSocial?: string;
 
-  @Prop({ index: true })
+  @Prop({ required: false, index: true })
   cuit?: string;
 
-  @Prop()
+  @Prop({ required: false })
   domicilio?: string;
 
-  @Prop()
+  @Prop({ required: false })
   telefono?: string;
 
-  @Prop()
+  @Prop({ required: false })
   email?: string;
 
-  @Prop({ required: true, enum: Object.values(CategoriaProveedor), index: true })
+  @Prop({ required: true, default: 'OTROS' })
   categoria: string;
 
-  @Prop({ type: [String], default: [] })
-  productosProvee: string[];
+  @Prop({ required: false, type: [String], default: [] })
+  productosProvee?: string[];
 
-  @Prop({ default: '' })
-  condicionesCompra: string;
+  @Prop({ required: false, default: '' })
+  condicionesCompra?: string;
 
-  @Prop({ required: true, enum: Object.values(FormaPagoProveedor), default: FormaPagoProveedor.CUENTA_CORRIENTE })
+  @Prop({ required: true, default: 'EFECTIVO' })
   formaPagoHabitual: string;
 
-  @Prop()
+  @Prop({ required: false })
   vendedorAsignado?: string;
 
-  @Prop({ required: true, default: true, index: true })
+  @Prop({ required: true, default: true })
   activo: boolean;
 
-  @Prop()
+  @Prop({ required: false })
   observaciones?: string;
+
+  @Prop({ required: false })
+  plazoCuentaCorriente?: string;
+
+  @Prop({ required: false })
+  descuento?: number;
 }
 
 export const ProveedorSchema = SchemaFactory.createForClass(ProveedorMongo);
 
 // Índices adicionales
 ProveedorSchema.index({ nombre: 'text', razonSocial: 'text', cuit: 'text' });
-
-

@@ -411,10 +411,8 @@ function EmpleadosPage() {
                 <label>Sueldo Mensual *</label>
                 <input
                   type="number"
-                  step="0.01"
-                  min="0"
                   value={formData.sueldoMensual}
-                  onChange={(e) => setFormData({ ...formData, sueldoMensual: e.target.value === '' ? '' : parseFloat(e.target.value) || '' })}
+                  onChange={(e) => setFormData({ ...formData, sueldoMensual: e.target.value })}
                   required
                 />
               </div>
@@ -486,7 +484,7 @@ function EmpleadosPage() {
                 </div>
                 <form onSubmit={handleRegistrarPago} className="form-inline">
                   <input type="month" value={formPago.mes} onChange={(e) => setFormPago({ ...formPago, mes: e.target.value })} required />
-                  <input type="number" step="0.01" min="0" value={formPago.monto} onChange={(e) => setFormPago({ ...formPago, monto: e.target.value === '' ? '' : parseFloat(e.target.value) || '' })} placeholder="Monto" required />
+                  <input type="number" value={formPago.monto} onChange={(e) => setFormPago({ ...formPago, monto: e.target.value })} placeholder="Monto" required />
                   <input type="date" value={formPago.fechaPago} onChange={(e) => setFormPago({ ...formPago, fechaPago: e.target.value })} required />
                   <input type="text" value={formPago.observaciones} onChange={(e) => setFormPago({ ...formPago, observaciones: e.target.value })} placeholder="Observaciones" />
                   <button type="submit" className="btn-primary" disabled={loading}>Registrar Pago</button>
@@ -537,7 +535,7 @@ function EmpleadosPage() {
                 </div>
                 <form onSubmit={handleRegistrarAdelanto} className="form-inline">
                   <input type="date" value={formAdelanto.fecha} onChange={(e) => setFormAdelanto({ ...formAdelanto, fecha: e.target.value })} required />
-                  <input type="number" step="0.01" min="0" value={formAdelanto.monto} onChange={(e) => setFormAdelanto({ ...formAdelanto, monto: e.target.value === '' ? '' : parseFloat(e.target.value) || '' })} placeholder="Monto" required />
+                  <input type="number" value={formAdelanto.monto} onChange={(e) => setFormAdelanto({ ...formAdelanto, monto: e.target.value })} placeholder="Monto" required />
                   <input type="month" value={formAdelanto.mesAplicado} onChange={(e) => setFormAdelanto({ ...formAdelanto, mesAplicado: e.target.value })} required />
                   <input type="text" value={formAdelanto.observaciones} onChange={(e) => setFormAdelanto({ ...formAdelanto, observaciones: e.target.value })} placeholder="Observaciones" />
                   <button type="submit" className="btn-primary" disabled={loading}>Registrar Adelanto</button>

@@ -1,7 +1,6 @@
 .App {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background-attachment: fixed;
+  background: #f3f4f6;
 }
 
 /* Navbar Moderno */
@@ -21,10 +20,7 @@
 .navbar h1 {
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary);
 }
 
 .navbar-links {
@@ -51,6 +47,7 @@
 .navbar-links a.active {
   background: var(--primary);
   color: white;
+  font-weight: 700;
 }
 
 /* Container */

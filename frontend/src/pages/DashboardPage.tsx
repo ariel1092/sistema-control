@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfWeek, startOfYear } from 'date-fns';
 import { cajaApi } from '../services/api';
-import ModalSocio from '../components/ModalSocio';
 import {
   LineChart,
   Line,
@@ -29,10 +28,6 @@ function DashboardPage() {
   const [resumenAnual, setResumenAnual] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modalSocio, setModalSocio] = useState<{ abierto: boolean; socio: 'ABDUL' | 'OSVALDO' | null }>({
-    abierto: false,
-    socio: null,
-  });
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -231,34 +226,6 @@ function DashboardPage() {
               <div className="card-content">
                 <div className="card-label">Tarjeta/Transferencia</div>
                 <div className="card-value">${((resumenDiario.totalTarjeta || 0) + (resumenDiario.totalTransferencia || 0)).toFixed(2)}</div>
-              </div>
-            </div>
-            <div 
-              className="summary-card socio-card clickeable"
-              onClick={() => setModalSocio({ abierto: true, socio: 'ABDUL' })}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="card-icon">👤</div>
-              <div className="card-content">
-                <div className="card-label">Abdul (50%)</div>
-                <div className="card-value">${((resumenDiario.totalGeneral || 0) * 0.5).toFixed(2)}</div>
-                <div className="card-subvalue">
-                  Transferencias recibidas: ${(resumenDiario.totalAbdul || 0).toFixed(2)}
-                </div>
-              </div>
-            </div>
-            <div 
-              className="summary-card socio-card clickeable"
-              onClick={() => setModalSocio({ abierto: true, socio: 'OSVALDO' })}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="card-icon">👤</div>
-              <div className="card-content">
-                <div className="card-label">Osvaldo (50%)</div>
-                <div className="card-value">${((resumenDiario.totalGeneral || 0) * 0.5).toFixed(2)}</div>
-                <div className="card-subvalue">
-                  Transferencias recibidas: ${(resumenDiario.totalOsvaldo || 0).toFixed(2)}
-                </div>
               </div>
             </div>
           </div>
@@ -466,16 +433,6 @@ function DashboardPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Modal de Socio */}
-      {modalSocio.abierto && modalSocio.socio && (
-        <ModalSocio
-          socio={modalSocio.socio}
-          total={((resumenDiario?.totalGeneral || 0) * 0.5)} // 50% del total de ventas
-          transferenciasRecibidas={modalSocio.socio === 'ABDUL' ? (resumenDiario?.totalAbdul || 0) : (resumenDiario?.totalOsvaldo || 0)}
-          onClose={() => setModalSocio({ abierto: false, socio: null })}
-        />
       )}
     </div>
   );

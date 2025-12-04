@@ -18,13 +18,13 @@
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin: 0;
 }
 
 .btn-primary {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: #b91c1c;
   color: white;
   border: none;
   border-radius: 8px;
@@ -34,7 +34,7 @@
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: #991b1b;
 }
 
 .btn-primary:disabled {
@@ -169,7 +169,7 @@
 .modal-header h2 {
   margin: 0;
   font-size: 24px;
-  color: #1e3a8a;
+  color: #b91c1c;
 }
 
 .modal-close {
@@ -221,7 +221,7 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #b91c1c;
 }
 
 .form-row {

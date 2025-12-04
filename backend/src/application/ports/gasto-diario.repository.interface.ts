@@ -10,3 +10,9 @@ export interface IGastoDiarioRepository {
 }
 
 
+
+
+
+
+
+

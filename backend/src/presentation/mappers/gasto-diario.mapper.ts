@@ -19,3 +19,9 @@ export class GastoDiarioMapper {
 }
 
 
+
+
+
+
+
+

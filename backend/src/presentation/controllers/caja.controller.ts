@@ -1,103 +1,64 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Query, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { GetResumenDiaUseCase } from '../../application/use-cases/caja/get-resumen-dia.use-case';
-import { ResumenDiaDto } from '../../application/dtos/caja/resumen-dia.dto';
-import { CierreCajaResponseDto, AbrirCajaDto, CerrarCajaDto } from '../../application/dtos/caja/cierre-caja.dto';
-// TODO: Importar guards cuando estén implementados
-// import { JwtAuthGuard } from '../../infrastructure/auth/guards/jwt-auth.guard';
-// import { CurrentUser } from '../../infrastructure/auth/decorators/current-user.decorator';
+import { AbrirCajaUseCase } from '../../application/use-cases/caja/abrir-caja.use-case';
+import { CerrarCajaUseCase } from '../../application/use-cases/caja/cerrar-caja.use-case';
+import { GetHistorialCajaUseCase } from '../../application/use-cases/caja/get-historial-caja.use-case';
+import { CrearMovimientoCajaUseCase } from '../../application/use-cases/caja/crear-movimiento-caja.use-case';
+import { AbrirCajaDto } from '../../application/dtos/caja/abrir-caja.dto';
+import { CerrarCajaDto } from '../../application/dtos/caja/cerrar-caja.dto';
+import { CrearMovimientoCajaDto } from '../../application/dtos/caja/movimiento-caja.dto';
 
 @ApiTags('Caja')
 @Controller('caja')
-// @UseGuards(JwtAuthGuard) // TODO: Activar cuando auth esté implementado
-// @ApiBearerAuth()
 export class CajaController {
   constructor(
     private readonly getResumenDiaUseCase: GetResumenDiaUseCase,
+    private readonly abrirCajaUseCase: AbrirCajaUseCase,
+    private readonly cerrarCajaUseCase: CerrarCajaUseCase,
+    private readonly getHistorialCajaUseCase: GetHistorialCajaUseCase,
+    private readonly crearMovimientoCajaUseCase: CrearMovimientoCajaUseCase,
   ) {}
 
   @Get('resumen')
-  @ApiOperation({ summary: 'Obtener resumen diario de caja' })
-  @ApiResponse({
-    status: 200,
-    description: 'Resumen del día',
-    type: CierreCajaResponseDto,
-  })
-  async getResumen(
-    @Query('fecha') fecha?: string,
-  ): Promise<CierreCajaResponseDto> {
-    // Parsear fecha correctamente (formato YYYY-MM-DD)
-    // Usar UTC para evitar problemas de zona horaria
-    let fechaBusqueda: Date;
-    if (fecha) {
-      const [year, month, day] = fecha.split('-').map(Number);
-      // Crear fecha en UTC para que coincida con cómo se guardan las ventas
-      fechaBusqueda = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-    } else {
-      fechaBusqueda = new Date();
-    }
-    return this.getResumenDiaUseCase.execute(fechaBusqueda);
-  }
-
-  @Get('historial')
-  @ApiOperation({ summary: 'Obtener historial de cierres de caja' })
-  @ApiResponse({
-    status: 200,
-    description: 'Historial de cierres',
-    type: [CierreCajaResponseDto],
-  })
-  async getHistorial(
-    @Query('desde') desde: string,
-    @Query('hasta') hasta: string,
-  ): Promise<CierreCajaResponseDto[]> {
-    // TODO: Implementar caso de uso GetHistorialCajaUseCase
-    throw new Error('Not implemented yet');
+  @ApiOperation({ summary: 'Obtener resumen del día' })
+  getResumen(@Query('fecha') fecha?: string) {
+    const fechaDate = fecha ? new Date(fecha) : new Date();
+    return this.getResumenDiaUseCase.execute(fechaDate);
   }
 
   @Post('abrir')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Abrir caja del día' })
-  @ApiResponse({
-    status: 201,
-    description: 'Caja abierta exitosamente',
-    type: CierreCajaResponseDto,
-  })
-  async abrir(
-    @Body() abrirCajaDto: AbrirCajaDto,
-    // @CurrentUser() user: any, // TODO: Descomentar cuando auth esté implementado
-  ): Promise<CierreCajaResponseDto> {
-    const usuarioId = 'usuario-temp-id'; // TODO: Obtener del usuario autenticado
-    // TODO: Implementar caso de uso AbrirCajaUseCase
-    throw new Error('Not implemented yet');
+  @ApiOperation({ summary: 'Abrir caja' })
+  async abrirCaja(@Body() dto: AbrirCajaDto, @Query('usuarioId') usuarioId?: string) {
+    if (!usuarioId) {
+      throw new BadRequestException('El usuarioId es obligatorio');
+    }
+    return this.abrirCajaUseCase.execute(dto, usuarioId);
   }
 
   @Post('cerrar')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cerrar caja del día' })
-  @ApiResponse({
-    status: 200,
-    description: 'Caja cerrada exitosamente',
-    type: CierreCajaResponseDto,
-  })
-  async cerrar(
-    @Body() cerrarCajaDto: CerrarCajaDto,
-    // @CurrentUser() user: any, // TODO: Descomentar cuando auth esté implementado
-  ): Promise<CierreCajaResponseDto> {
-    const usuarioId = 'usuario-temp-id'; // TODO: Obtener del usuario autenticado
-    // TODO: Implementar caso de uso CerrarCajaUseCase
-    throw new Error('Not implemented yet');
+  @ApiOperation({ summary: 'Cerrar caja' })
+  async cerrarCaja(@Body() dto: CerrarCajaDto, @Query('usuarioId') usuarioId?: string) {
+    if (!usuarioId) {
+      throw new BadRequestException('El usuarioId es obligatorio');
+    }
+    return this.cerrarCajaUseCase.execute(dto, usuarioId);
+  }
+
+  @Post('movimientos')
+  @ApiOperation({ summary: 'Crear movimiento manual de caja' })
+  async crearMovimiento(@Body() dto: CrearMovimientoCajaDto, @Query('usuarioId') usuarioId?: string) {
+    if (!usuarioId) {
+      throw new BadRequestException('El usuarioId es obligatorio');
+    }
+    return this.crearMovimientoCajaUseCase.execute(dto, usuarioId);
+  }
+
+  @Get('historial')
+  @ApiOperation({ summary: 'Obtener historial de caja' })
+  getHistorial(@Query('fechaInicio') fechaInicio?: string, @Query('fechaFin') fechaFin?: string) {
+    const inicio = fechaInicio ? new Date(fechaInicio) : undefined;
+    const fin = fechaFin ? new Date(fechaFin) : undefined;
+    return this.getHistorialCajaUseCase.execute(inicio, fin);
   }
 }
-
-
-
-

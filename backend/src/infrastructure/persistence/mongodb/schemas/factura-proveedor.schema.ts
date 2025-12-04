@@ -44,3 +44,6 @@ FacturaProveedorSchema.index({ pagada: 1, fechaVencimiento: 1 });
 FacturaProveedorSchema.index({ fechaVencimiento: 1 });
 
 
+
+
+

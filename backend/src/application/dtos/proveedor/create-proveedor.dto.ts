@@ -1,72 +1,96 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEnum, IsArray, IsBoolean, MaxLength } from 'class-validator';
-import { CategoriaProveedor } from '../../../domain/enums/categoria-proveedor.enum';
-import { FormaPagoProveedor } from '../../../domain/enums/forma-pago-proveedor.enum';
+import { IsString, IsOptional, IsBoolean, IsArray, IsEnum } from 'class-validator';
+
+export enum CategoriaProveedor {
+  FERRETERIA = 'FERRETERIA',
+  PLOMERIA = 'PLOMERIA',
+  ELECTRICIDAD = 'ELECTRICIDAD',
+  CONSTRUCCION = 'CONSTRUCCION',
+  PINTURAS = 'PINTURAS',
+  HERRAMIENTAS = 'HERRAMIENTAS',
+  SEGURIDAD = 'SEGURIDAD',
+  JARDINERIA = 'JARDINERIA',
+  OTROS = 'OTROS',
+}
+
+export enum FormaPagoHabitual {
+  EFECTIVO = 'EFECTIVO',
+  TRANSFERENCIA = 'TRANSFERENCIA',
+  MERCADOPAGO = 'MERCADOPAGO',
+  CUENTA_CORRIENTE = 'CUENTA_CORRIENTE',
+  CHEQUE = 'CHEQUE',
+}
 
 export class CreateProveedorDto {
-  @ApiProperty({ description: 'Nombre del proveedor', example: 'Acme Ferretería' })
+  @ApiProperty()
   @IsString()
   nombre: string;
 
-  @ApiProperty({ description: 'Razón social', required: false, example: 'Acme Ferretería S.A.' })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   razonSocial?: string;
 
-  @ApiProperty({ description: 'CUIT', required: false, example: '20-12345678-9' })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   cuit?: string;
 
-  @ApiProperty({ description: 'Domicilio', required: false })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   domicilio?: string;
 
-  @ApiProperty({ description: 'Teléfono', required: false })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   telefono?: string;
 
-  @ApiProperty({ description: 'Email', required: false })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   email?: string;
 
-  @ApiProperty({ description: 'Categoría del proveedor', enum: CategoriaProveedor, default: CategoriaProveedor.OTROS })
+  @ApiProperty({ enum: CategoriaProveedor })
   @IsEnum(CategoriaProveedor)
   categoria: CategoriaProveedor;
 
-  @ApiProperty({ description: 'Lista de productos que provee', required: false, type: [String] })
+  @ApiProperty({ required: false, type: [String], default: [] })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   productosProvee?: string[];
 
-  @ApiProperty({ description: 'Condiciones de compra', required: false, example: '30/60 días' })
+  @ApiProperty({ required: false, default: '' })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
   condicionesCompra?: string;
 
-  @ApiProperty({ description: 'Forma de pago habitual', enum: FormaPagoProveedor, default: FormaPagoProveedor.CUENTA_CORRIENTE })
-  @IsEnum(FormaPagoProveedor)
-  formaPagoHabitual: FormaPagoProveedor;
+  @ApiProperty({ enum: FormaPagoHabitual })
+  @IsEnum(FormaPagoHabitual)
+  formaPagoHabitual: FormaPagoHabitual;
 
-  @ApiProperty({ description: 'Vendedor asignado', required: false })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   vendedorAsignado?: string;
 
-  @ApiProperty({ description: 'Activo', required: false, default: true })
+  @ApiProperty({ required: false, default: true })
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
 
-  @ApiProperty({ description: 'Observaciones', required: false })
+  @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
   observaciones?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  plazoCuentaCorriente?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  descuento?: number;
 }
-
-

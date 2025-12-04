@@ -1,71 +1,119 @@
 import { FacturaProveedor } from '../../../../domain/entities/factura-proveedor.entity';
-import { FacturaProveedorMongo, FacturaProveedorDocument } from '../schemas/factura-proveedor.schema';
-import { DetalleFacturaProveedorMongo, DetalleFacturaProveedorDocument } from '../schemas/detalle-factura-proveedor.schema';
-import { DetalleFacturaProveedorMapper } from './detalle-factura-proveedor.mapper';
+import { DetalleFacturaProveedor } from '../../../../domain/entities/detalle-factura-proveedor.entity';
+import { FacturaProveedorMongo } from '../schemas/factura-proveedor.schema';
+import { DetalleFacturaProveedorMongo } from '../schemas/detalle-factura-proveedor.schema';
 import { Types } from 'mongoose';
 
 export class FacturaProveedorMapper {
   static toDomain(
-    facturaDoc: FacturaProveedorDocument,
-    detallesDocs: DetalleFacturaProveedorDocument[],
+    facturaDoc: any,
+    detallesDocs: any[] = [],
   ): FacturaProveedor {
     if (!facturaDoc) return null;
 
     const detalles = detallesDocs.map((det) =>
-      DetalleFacturaProveedorMapper.toDomain(det, facturaDoc._id.toString()),
+      new DetalleFacturaProveedor(
+        det._id?.toString(),
+        facturaDoc._id.toString(),
+        det.codigoProducto,
+        det.nombreProducto,
+        det.cantidad,
+        det.precioUnitario,
+        det.descuento || 0,
+        det.iva || 0,
+        det.productoId?.toString(),
+        det.observaciones,
+        det.createdAt,
+      ),
     );
 
-    return new FacturaProveedor(
+    const factura = new FacturaProveedor(
       facturaDoc._id.toString(),
       facturaDoc.numero,
-      facturaDoc.proveedorId.toString(),
+      facturaDoc.proveedorId?.toString() || facturaDoc.proveedorId,
       facturaDoc.fecha,
       facturaDoc.fechaVencimiento,
       detalles,
       facturaDoc.remitoId?.toString(),
       facturaDoc.ordenCompraId?.toString(),
-      facturaDoc.pagada,
-      facturaDoc.montoPagado,
-      facturaDoc.fechaPago,
       facturaDoc.observaciones,
-      (facturaDoc as any).createdAt || new Date(),
-      (facturaDoc as any).updatedAt || new Date(),
+      facturaDoc.createdAt,
+      facturaDoc.updatedAt,
     );
+
+    factura.montoPagado = facturaDoc.montoPagado || 0;
+
+    return factura;
   }
 
   static toPersistence(factura: FacturaProveedor): {
-    factura: Partial<FacturaProveedorMongo>;
-    detalles: Partial<DetalleFacturaProveedorMongo>[];
+    factura: any;
+    detalles: any[];
   } {
     const facturaDoc: any = {
       numero: factura.numero,
-      proveedorId: new Types.ObjectId(factura.proveedorId),
       fecha: factura.fecha,
       fechaVencimiento: factura.fechaVencimiento,
-      pagada: factura.pagada,
       montoPagado: factura.montoPagado,
-      fechaPago: factura.fechaPago,
       observaciones: factura.observaciones,
     };
 
+    if (factura.id) {
+      facturaDoc._id = Types.ObjectId.isValid(factura.id)
+        ? new Types.ObjectId(factura.id)
+        : factura.id;
+    }
+
+    if (factura.proveedorId) {
+      facturaDoc.proveedorId = Types.ObjectId.isValid(factura.proveedorId)
+        ? new Types.ObjectId(factura.proveedorId)
+        : factura.proveedorId;
+    }
+
     if (factura.remitoId) {
-      facturaDoc.remitoId = new Types.ObjectId(factura.remitoId);
+      facturaDoc.remitoId = Types.ObjectId.isValid(factura.remitoId)
+        ? new Types.ObjectId(factura.remitoId)
+        : factura.remitoId;
     }
 
     if (factura.ordenCompraId) {
-      facturaDoc.ordenCompraId = new Types.ObjectId(factura.ordenCompraId);
+      facturaDoc.ordenCompraId = Types.ObjectId.isValid(factura.ordenCompraId)
+        ? new Types.ObjectId(factura.ordenCompraId)
+        : factura.ordenCompraId;
     }
 
-    if (factura.id) {
-      facturaDoc._id = new Types.ObjectId(factura.id);
-    }
+    const detalles = factura.detalles.map((det) => {
+      const detDoc: any = {
+        codigoProducto: det.codigoProducto,
+        nombreProducto: det.nombreProducto,
+        cantidad: det.cantidad,
+        precioUnitario: det.precioUnitario,
+        descuento: det.descuento,
+        iva: det.iva,
+        observaciones: det.observaciones,
+      };
 
-    const detalles = factura.detalles.map((det) =>
-      DetalleFacturaProveedorMapper.toPersistence(det, factura.id || ''),
-    );
+      if (det.id) {
+        detDoc._id = Types.ObjectId.isValid(det.id)
+          ? new Types.ObjectId(det.id)
+          : det.id;
+      }
+
+      if (factura.id) {
+        detDoc.facturaId = Types.ObjectId.isValid(factura.id)
+          ? new Types.ObjectId(factura.id)
+          : factura.id;
+      }
+
+      if (det.productoId) {
+        detDoc.productoId = Types.ObjectId.isValid(det.productoId)
+          ? new Types.ObjectId(det.productoId)
+          : det.productoId;
+      }
+
+      return detDoc;
+    });
 
     return { factura: facturaDoc, detalles };
   }
 }
-
-

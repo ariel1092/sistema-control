@@ -171,5 +171,13 @@ export class CreateVentaDto {
   @Min(0)
   @Max(100)
   recargoCredito?: number;
+
+  @ApiProperty({
+    description: 'ID del vendedor que realiza la venta',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  vendedorId?: string;
 }
 

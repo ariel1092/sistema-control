@@ -28,6 +28,7 @@ export class ProductoMapper {
       productoDoc.descripcion,
       productoDoc.marca,
       productoDoc.precioCosto,
+      productoDoc.codigoBarras,
       productoDoc.createdAt,
       productoDoc.updatedAt,
     );
@@ -46,6 +47,7 @@ export class ProductoMapper {
       descripcion: producto.descripcion,
       marca: producto.marca,
       precioCosto: producto.precioCosto,
+      codigoBarras: producto.codigoBarras,
     };
 
     if (producto.id) {

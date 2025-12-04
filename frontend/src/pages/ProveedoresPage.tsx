@@ -20,6 +20,18 @@ interface Proveedor {
   observaciones?: string;
   createdAt: Date;
   updatedAt: Date;
+  plazoCuentaCorriente?: number;
+  descuento?: number;
+  saldoPendiente?: {
+    cantidadPendientes: number;
+    saldoTotal: number;
+    saldoProximoVencer: number;
+  };
+  resumenFacturas?: {
+    cantidadPendientes: number;
+    saldoTotal: number;
+    saldoProximoVencer: number;
+  };
 }
 
 const CATEGORIAS = [
@@ -92,8 +104,26 @@ function ProveedoresPage() {
   const [cuentaCorriente, setCuentaCorriente] = useState<CuentaCorriente | null>(null);
   const [loadingCC, setLoadingCC] = useState(false);
   const [showModalPago, setShowModalPago] = useState(false);
+  const [showModalDetalleFactura, setShowModalDetalleFactura] = useState(false);
   const [facturaSeleccionada, setFacturaSeleccionada] = useState<any>(null);
+  const [detalleFactura, setDetalleFactura] = useState<any>(null);
   const [montoPago, setMontoPago] = useState('');
+  const [pagarTotal, setPagarTotal] = useState(true);
+  const [montoPagoFactura, setMontoPagoFactura] = useState('');
+  const [showModalFactura, setShowModalFactura] = useState(false);
+  const [showModalFacturas, setShowModalFacturas] = useState(false);
+  const [facturas, setFacturas] = useState<any[]>([]);
+  const [proveedorParaFactura, setProveedorParaFactura] = useState<Proveedor | null>(null);
+  const [formDataFactura, setFormDataFactura] = useState({
+    numero: '',
+    fecha: format(new Date(), 'yyyy-MM-dd'),
+    fechaVencimiento: '',
+    diasParaPagar: '',
+    importeBruto: '',
+    descuento: '0',
+    observaciones: '',
+    detalles: [] as any[],
+  });
   const [formData, setFormData] = useState({
     nombre: '',
     razonSocial: '',
@@ -207,12 +237,105 @@ function ProveedoresPage() {
     try {
       const response = await proveedoresApi.obtenerCuentaCorriente(proveedor.id);
       setCuentaCorriente(response.data);
+      // También cargar todas las facturas
+      try {
+        const facturasResponse = await proveedoresApi.obtenerFacturas(proveedor.id);
+        console.log('Facturas recibidas:', facturasResponse);
+        console.log('Facturas data:', facturasResponse.data);
+        setFacturas(facturasResponse.data || []);
+      } catch (facturasErr: any) {
+        console.error('Error al cargar facturas:', facturasErr);
+        setFacturas([]);
+        // No mostramos error aquí, solo dejamos el array vacío
+      }
+      setShowModalFacturas(true);
     } catch (err: any) {
+      console.error('Error al cargar cuenta corriente:', err);
       setError(err.message || 'Error al cargar cuenta corriente');
     } finally {
       setLoadingCC(false);
     }
   }, []);
+
+  const handleCargarFactura = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proveedorParaFactura) {
+      setError('Debe seleccionar un proveedor');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const importeBruto = parseFloat(formDataFactura.importeBruto) || 0;
+      const descuento = parseFloat(formDataFactura.descuento) || 0;
+      const descuentoMonto = (importeBruto * descuento) / 100;
+      const subtotal = importeBruto - descuentoMonto;
+      const iva = subtotal * 0.21;
+      const total = subtotal + iva;
+
+      const facturaData = {
+        numero: formDataFactura.numero,
+        fecha: new Date(formDataFactura.fecha),
+        fechaVencimiento: new Date(formDataFactura.fechaVencimiento),
+        total,
+        descuento,
+        observaciones: formDataFactura.observaciones,
+        detalles: formDataFactura.detalles.length > 0 
+          ? formDataFactura.detalles 
+          : [{
+              codigoProducto: 'GEN001',
+              nombreProducto: 'Producto Genérico',
+              cantidad: 1,
+              precioUnitario: importeBruto,
+              descuento: descuento,
+              iva: 21,
+            }],
+      };
+
+      await proveedoresApi.cargarFactura(proveedorParaFactura.id, facturaData);
+      setSuccess('Factura cargada exitosamente');
+      setShowModalFactura(false);
+      resetFormFactura();
+      // Recargar proveedores para actualizar el resumen financiero
+      await cargarProveedores();
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar factura');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetFormFactura = () => {
+    setFormDataFactura({
+      numero: '',
+      fecha: format(new Date(), 'yyyy-MM-dd'),
+      fechaVencimiento: '',
+      diasParaPagar: '',
+      importeBruto: '',
+      descuento: '0',
+      observaciones: '',
+      detalles: [],
+    });
+    setProveedorParaFactura(null);
+  };
+
+  const calcularFechaVencimiento = (dias: string) => {
+    if (!dias || isNaN(parseInt(dias))) return '';
+    const fecha = new Date(formDataFactura.fecha);
+    fecha.setDate(fecha.getDate() + parseInt(dias));
+    return format(fecha, 'yyyy-MM-dd');
+  };
+
+  const handleDiasParaPagarChange = (dias: string) => {
+    setFormDataFactura({
+      ...formDataFactura,
+      diasParaPagar: dias,
+      fechaVencimiento: calcularFechaVencimiento(dias),
+    });
+  };
 
   const handleCerrarModalDetalle = () => {
     setProveedorSeleccionado(null);
@@ -222,20 +345,41 @@ function ProveedoresPage() {
 
   const handleRegistrarPago = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!facturaSeleccionada || !montoPago) return;
+    if (!facturaSeleccionada) return;
+
+    const monto = pagarTotal 
+      ? facturaSeleccionada.saldoPendiente 
+      : parseFloat(montoPagoFactura || '0');
+
+    if (monto <= 0) {
+      setError('El monto debe ser mayor a 0');
+      return;
+    }
+
+    if (monto > facturaSeleccionada.saldoPendiente) {
+      setError('El monto no puede ser mayor al saldo pendiente');
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
       await proveedoresApi.registrarPago(facturaSeleccionada.id, {
-        monto: parseFloat(montoPago),
-        descripcion: `Pago parcial - Factura ${facturaSeleccionada.numero}`,
+        monto: monto,
+        metodoPago: 'EFECTIVO',
+        observaciones: pagarTotal 
+          ? `Pago total - Factura ${facturaSeleccionada.numero}`
+          : `Pago parcial - Factura ${facturaSeleccionada.numero}`,
       });
       setSuccess('Pago registrado exitosamente');
       setShowModalPago(false);
-      setMontoPago('');
+      setShowModalDetalleFactura(false);
+      setMontoPagoFactura('');
+      setPagarTotal(true);
       setFacturaSeleccionada(null);
-      // Recargar cuenta corriente
+      setDetalleFactura(null);
+      // Recargar proveedores y facturas
+      await cargarProveedores();
       if (proveedorSeleccionado) {
         await handleClickProveedor(proveedorSeleccionado);
       }
@@ -251,12 +395,23 @@ function ProveedoresPage() {
     <div className="proveedores-page">
       <div className="proveedores-header">
         <h1 className="page-title">🏭 Proveedores</h1>
-        <button
-          className="btn-primary"
-          onClick={() => setShowModal(true)}
-        >
-          ➕ Agregar Nuevo Proveedor
-        </button>
+        <div className="header-buttons">
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setProveedorParaFactura(null);
+              setShowModalFactura(true);
+            }}
+          >
+            📄 Cargar Factura
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => setShowModal(true)}
+          >
+            ➕ Agregar Nuevo Proveedor
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
@@ -276,37 +431,30 @@ function ProveedoresPage() {
               <div className="proveedor-header">
                 <h3>{proveedor.nombre}</h3>
                 <span className={`badge ${proveedor.activo ? 'activo' : 'inactivo'}`}>
-                  {proveedor.activo ? 'Activo' : 'Inactivo'}
+                  {proveedor.activo ? 'ACTIVO' : 'INACTIVO'}
                 </span>
               </div>
               <div className="proveedor-body">
-                {proveedor.razonSocial && (
-                  <p><strong>Razón Social:</strong> {proveedor.razonSocial}</p>
-                )}
-                {proveedor.cuit && (
-                  <p><strong>CUIT:</strong> {proveedor.cuit}</p>
-                )}
-                {proveedor.telefono && (
-                  <p><strong>Teléfono:</strong> {proveedor.telefono}</p>
-                )}
-                {proveedor.email && (
-                  <p><strong>Email:</strong> {proveedor.email}</p>
-                )}
-                <p><strong>Categoría:</strong> {formatearCategoria(proveedor.categoria)}</p>
-                <p><strong>Forma de Pago:</strong> {formatearCategoria(proveedor.formaPagoHabitual)}</p>
-                {proveedor.condicionesCompra && (
-                  <p><strong>Condiciones:</strong> {proveedor.condicionesCompra}</p>
-                )}
-                {proveedor.productosProvee.length > 0 && (
-                  <div>
-                    <strong>Productos:</strong>
-                    <ul>
-                      {proveedor.productosProvee.map((prod, idx) => (
-                        <li key={idx}>{prod}</li>
-                      ))}
-                    </ul>
+                <div className="resumen-financiero">
+                  <div className="resumen-item-card">
+                    <span className="resumen-label-card">Facturas Pendientes:</span>
+                    <span className="resumen-value-card">
+                      {proveedor.resumenFacturas?.cantidadPendientes || proveedor.saldoPendiente?.cantidadPendientes || 0}
+                    </span>
                   </div>
-                )}
+                  <div className="resumen-item-card">
+                    <span className="resumen-label-card">Saldo Total a Pagar:</span>
+                    <span className="resumen-value-card saldo-total">
+                      {formatearMonto(proveedor.resumenFacturas?.saldoTotal || proveedor.saldoPendiente?.saldoTotal || 0)}
+                    </span>
+                  </div>
+                  <div className="resumen-item-card">
+                    <span className="resumen-label-card">Saldo Más Próximo a Vencer:</span>
+                    <span className="resumen-value-card saldo-proximo">
+                      {formatearMonto(proveedor.resumenFacturas?.saldoProximoVencer || proveedor.saldoPendiente?.saldoProximoVencer || 0)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -724,51 +872,487 @@ function ProveedoresPage() {
         </div>
       )}
 
-      {/* Modal de Pago */}
-      {showModalPago && facturaSeleccionada && (
-        <div className="modal-overlay" onClick={() => setShowModalPago(false)}>
+      {/* Modal de Cargar Factura */}
+      {showModalFactura && (
+        <div className="modal-overlay" onClick={() => { setShowModalFactura(false); resetFormFactura(); }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>💰 Registrar Pago</h2>
-              <button className="modal-close" onClick={() => setShowModalPago(false)}>×</button>
+              <h2>📄 Cargar Factura</h2>
+              <button className="modal-close" onClick={() => { setShowModalFactura(false); resetFormFactura(); }}>×</button>
             </div>
-            <form onSubmit={handleRegistrarPago} className="modal-body">
+            <form onSubmit={handleCargarFactura} className="modal-body">
+              {!proveedorParaFactura && (
+                <div className="form-group">
+                  <label>Proveedor *</label>
+                  <select
+                    value={proveedorParaFactura?.id || ''}
+                    onChange={(e) => {
+                      const proveedor = proveedores.find(p => p.id === e.target.value);
+                      setProveedorParaFactura(proveedor || null);
+                      if (proveedor) {
+                        setFormDataFactura({
+                          ...formDataFactura,
+                          descuento: (proveedor as any).descuento?.toString() || '0',
+                        });
+                      }
+                    }}
+                    required
+                  >
+                    <option value="">Seleccionar proveedor...</option>
+                    {proveedores.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {proveedorParaFactura && (
+                <div className="proveedor-info-card">
+                  <h3>{proveedorParaFactura.nombre}</h3>
+                  <p><strong>Plazo Cuenta Corriente:</strong> {(proveedorParaFactura as any).plazoCuentaCorriente || 'N/A'} días</p>
+                  <p><strong>Descuento:</strong> {(proveedorParaFactura as any).descuento || 0}%</p>
+                </div>
+              )}
+
               <div className="form-group">
-                <label>Factura</label>
-                <input type="text" value={facturaSeleccionada.numero} disabled />
-              </div>
-              <div className="form-group">
-                <label>Total Factura</label>
-                <input type="text" value={formatearMonto(facturaSeleccionada.total)} disabled />
-              </div>
-              <div className="form-group">
-                <label>Ya Pagado</label>
-                <input type="text" value={formatearMonto(facturaSeleccionada.montoPagado)} disabled />
-              </div>
-              <div className="form-group">
-                <label>Saldo Pendiente</label>
-                <input type="text" value={formatearMonto(facturaSeleccionada.saldoPendiente)} disabled />
-              </div>
-              <div className="form-group">
-                <label>Monto del Pago *</label>
+                <label>Número de Factura *</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max={facturaSeleccionada.saldoPendiente}
-                  value={montoPago}
-                  onChange={(e) => setMontoPago(e.target.value)}
-                  placeholder="0.00"
+                  type="text"
+                  value={formDataFactura.numero}
+                  onChange={(e) => setFormDataFactura({ ...formDataFactura, numero: e.target.value })}
                   required
+                  placeholder="Ej: 0001-00001234"
                 />
-                <small>Máximo: {formatearMonto(facturaSeleccionada.saldoPendiente)}</small>
               </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Fecha de Recepción *</label>
+                  <input
+                    type="date"
+                    value={formDataFactura.fecha}
+                    onChange={(e) => {
+                      const nuevaFecha = e.target.value;
+                      setFormDataFactura({
+                        ...formDataFactura,
+                        fecha: nuevaFecha,
+                        fechaVencimiento: formDataFactura.diasParaPagar 
+                          ? calcularFechaVencimiento(formDataFactura.diasParaPagar)
+                          : '',
+                      });
+                    }}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Días para Pagar</label>
+                  <input
+                    type="number"
+                    value={formDataFactura.diasParaPagar}
+                    onChange={(e) => handleDiasParaPagarChange(e.target.value)}
+                    placeholder="Ej: 30"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Fecha de Vencimiento *</label>
+                  <input
+                    type="date"
+                    value={formDataFactura.fechaVencimiento}
+                    onChange={(e) => setFormDataFactura({ ...formDataFactura, fechaVencimiento: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Importe Bruto *</label>
+                  <input
+                    type="number"
+                    value={formDataFactura.importeBruto}
+                    onChange={(e) => setFormDataFactura({ ...formDataFactura, importeBruto: e.target.value })}
+                    required
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Descuento (%)</label>
+                  <input
+                    type="number"
+                    value={formDataFactura.descuento}
+                    onChange={(e) => setFormDataFactura({ ...formDataFactura, descuento: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              {formDataFactura.importeBruto && (
+                <div className="factura-resumen">
+                  <div className="resumen-item">
+                    <span className="resumen-label">Importe Bruto:</span>
+                    <span className="resumen-value">{formatearMonto(parseFloat(formDataFactura.importeBruto) || 0)}</span>
+                  </div>
+                  {parseFloat(formDataFactura.descuento) > 0 && (
+                    <div className="resumen-item">
+                      <span className="resumen-label">Descuento ({formDataFactura.descuento}%):</span>
+                      <span className="resumen-value descuento">-{formatearMonto((parseFloat(formDataFactura.importeBruto) || 0) * parseFloat(formDataFactura.descuento) / 100)}</span>
+                    </div>
+                  )}
+                  <div className="resumen-item">
+                    <span className="resumen-label">Saldo Neto a Pagar:</span>
+                    <span className="resumen-value total">
+                      {formatearMonto(
+                        (parseFloat(formDataFactura.importeBruto) || 0) * 
+                        (1 - (parseFloat(formDataFactura.descuento) || 0) / 100) * 
+                        1.21
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>Observaciones</label>
+                <textarea
+                  value={formDataFactura.observaciones}
+                  onChange={(e) => setFormDataFactura({ ...formDataFactura, observaciones: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setShowModalPago(false)}>
+                <button type="button" className="btn-secondary" onClick={() => { setShowModalFactura(false); resetFormFactura(); }}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? 'Registrando...' : 'Registrar Pago'}
+                <button type="submit" className="btn-primary" disabled={loading || !proveedorParaFactura}>
+                  {loading ? 'Cargando...' : 'Cargar Factura'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Facturas del Proveedor */}
+      {showModalFacturas && proveedorSeleccionado && (
+        <div className="modal-overlay" onClick={() => { setShowModalFacturas(false); setProveedorSeleccionado(null); setFacturas([]); }}>
+          <div className="modal-content modal-facturas" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📄 Facturas - {proveedorSeleccionado.nombre}</h2>
+              <button className="modal-close" onClick={() => { setShowModalFacturas(false); setProveedorSeleccionado(null); setFacturas([]); }}>×</button>
+            </div>
+            <div className="modal-body">
+              {facturas.length === 0 ? (
+                <div className="empty-state">
+                  <p>No hay facturas registradas para este proveedor</p>
+                </div>
+              ) : (
+                <div className="facturas-grid">
+                  {facturas.map((factura) => (
+                    <div
+                      key={factura.id}
+                      className="factura-card"
+                      onClick={async () => {
+                        try {
+                          const response = await proveedoresApi.obtenerFacturaPorId(factura.id);
+                          console.log('Factura recibida:', response.data);
+                          console.log('Historial de pagos:', response.data.historialPagos);
+                          setDetalleFactura(response.data);
+                          setFacturaSeleccionada(response.data);
+                          setShowModalDetalleFactura(true);
+                        } catch (err: any) {
+                          setError(err.message || 'Error al cargar factura');
+                        }
+                      }}
+                    >
+                      <div className="factura-header">
+                        <h4>Factura {factura.numero}</h4>
+                        <span className={`badge ${factura.pagada ? 'pagada' : 'pendiente'}`}>
+                          {factura.pagada ? 'Pagada' : 'Pendiente'}
+                        </span>
+                      </div>
+                      <div className="factura-body">
+                        <p><strong>Fecha:</strong> {format(new Date(factura.fecha), 'dd/MM/yyyy')}</p>
+                        <p><strong>Vencimiento:</strong> {format(new Date(factura.fechaVencimiento), 'dd/MM/yyyy')}</p>
+                        <p><strong>Total:</strong> {formatearMonto(factura.total || 0)}</p>
+                        {!factura.pagada && (
+                          <p><strong>Saldo Pendiente:</strong> {formatearMonto(factura.saldoPendiente || 0)}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => { setShowModalFacturas(false); setProveedorSeleccionado(null); setFacturas([]); }}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalle de Factura */}
+      {showModalDetalleFactura && detalleFactura && (
+        <div className="modal-overlay" onClick={() => { setShowModalDetalleFactura(false); setDetalleFactura(null); }}>
+          <div className="modal-content modal-detalle-factura" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📄 Factura {detalleFactura.numero}</h2>
+              <button className="modal-close" onClick={() => { setShowModalDetalleFactura(false); setDetalleFactura(null); }}>×</button>
+            </div>
+            <div className="modal-body">
+              {/* Tabla Principal de Datos de la Factura */}
+              <div className="factura-tabla-principal">
+                <table className="tabla-factura-principal">
+                  <thead>
+                    <tr>
+                      <th>Factura</th>
+                      <th>Fecha de Recepción</th>
+                      <th>Fecha de Vencimiento</th>
+                      <th>Importe</th>
+                      <th>Descuento</th>
+                      <th>Saldo Neto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>{detalleFactura.numero}</strong></td>
+                      <td>{format(new Date(detalleFactura.fecha), 'dd/MM/yyyy')}</td>
+                      <td>{format(new Date(detalleFactura.fechaVencimiento), 'dd/MM/yyyy')}</td>
+                      <td>{formatearMonto(detalleFactura.totalBruto || detalleFactura.total || 0)}</td>
+                      <td>
+                        {detalleFactura.descuentoTotal > 0 ? (
+                          <>
+                            {((detalleFactura.descuentoTotal / (detalleFactura.totalBruto || detalleFactura.total || 1)) * 100).toFixed(0)}%
+                            <br />
+                            <small style={{ color: '#ef4444', fontWeight: 600 }}>
+                              -{formatearMonto(detalleFactura.descuentoTotal || 0)}
+                            </small>
+                          </>
+                        ) : (
+                          '0%'
+                        )}
+                      </td>
+                      <td><strong style={{ color: '#b91c1c', fontSize: '16px' }}>{formatearMonto(detalleFactura.saldoPendiente || 0)}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Resumen Adicional */}
+              <div className="factura-resumen-adicional">
+                <div className="resumen-card">
+                  <div className="resumen-card-label">Total Factura</div>
+                  <div className="resumen-card-value">{formatearMonto(detalleFactura.total || 0)}</div>
+                </div>
+                <div className="resumen-card">
+                  <div className="resumen-card-label">Monto Pagado</div>
+                  <div className="resumen-card-value">{formatearMonto(detalleFactura.montoPagado || 0)}</div>
+                </div>
+                <div className="resumen-card destacado">
+                  <div className="resumen-card-label">Saldo Pendiente</div>
+                  <div className="resumen-card-value pendiente">{formatearMonto(detalleFactura.saldoPendiente || 0)}</div>
+                </div>
+                <div className="resumen-card">
+                  <div className="resumen-card-label">Estado</div>
+                  <div>
+                    <span className={`badge ${detalleFactura.pagada ? 'pagada' : 'pendiente'}`}>
+                      {detalleFactura.pagada ? 'Pagada' : 'Pendiente'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Historial de Pagos */}
+              <div className="historial-pagos">
+                <h3>📋 Historial de Pagos</h3>
+                {detalleFactura.historialPagos && Array.isArray(detalleFactura.historialPagos) && detalleFactura.historialPagos.length > 0 ? (
+                  <table className="tabla-historial-pagos">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Monto</th>
+                        <th>Descripción</th>
+                        <th>Saldo Anterior</th>
+                        <th>Saldo Después</th>
+                        <th>Observaciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detalleFactura.historialPagos.map((pago: any) => (
+                        <tr key={pago.id}>
+                          <td>{format(new Date(pago.fecha), 'dd/MM/yyyy HH:mm')}</td>
+                          <td>
+                            <span className={`badge-tipo-pago ${pago.tipo === 'PAGO_COMPLETO' ? 'completo' : 'parcial'}`}>
+                              {pago.tipo === 'PAGO_COMPLETO' ? 'Pago Completo' : 'Pago Parcial'}
+                            </span>
+                          </td>
+                          <td><strong style={{ color: '#10b981', fontSize: '16px' }}>{formatearMonto(pago.monto)}</strong></td>
+                          <td>{pago.descripcion}</td>
+                          <td>{formatearMonto(pago.saldoAnterior)}</td>
+                          <td><strong>{formatearMonto(pago.saldoDespues)}</strong></td>
+                          <td>{pago.observaciones || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="historial-pagos-vacio">
+                    <p>No hay pagos registrados para esta factura</p>
+                  </div>
+                )}
+              </div>
+
+              {!detalleFactura.pagada && (
+                <div className="factura-acciones">
+                  <button
+                    className="btn-primary btn-pagar-factura"
+                    onClick={() => {
+                      setMontoPagoFactura(detalleFactura.saldoPendiente.toString());
+                      setPagarTotal(true);
+                      setShowModalPago(true);
+                    }}
+                  >
+                    💰 Pagar Factura
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => { setShowModalDetalleFactura(false); setDetalleFactura(null); }}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Pago */}
+      {showModalPago && facturaSeleccionada && (
+        <div className="modal-overlay modal-overlay-inner" onClick={() => { setShowModalPago(false); setMontoPagoFactura(''); setPagarTotal(true); }}>
+          <div className="modal-content modal-content-inner" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header modal-pago-header">
+              <div className="modal-icon">💰</div>
+              <div>
+                <h2>Registrar Pago</h2>
+                <p className="modal-subtitle">Factura {facturaSeleccionada.numero}</p>
+              </div>
+              <button className="modal-close" onClick={() => { setShowModalPago(false); setMontoPagoFactura(''); setPagarTotal(true); }}>×</button>
+            </div>
+            <form onSubmit={handleRegistrarPago} className="modal-body">
+              <div className="pago-saldo-card">
+                <div className="pago-saldo-label">Saldo Pendiente</div>
+                <div className="pago-saldo-monto">{formatearMonto(facturaSeleccionada.saldoPendiente || 0)}</div>
+              </div>
+
+              <div className="pago-opciones">
+                <div 
+                  className={`pago-opcion-card ${pagarTotal ? 'selected' : ''}`}
+                  onClick={() => {
+                    setPagarTotal(true);
+                    setMontoPagoFactura(facturaSeleccionada.saldoPendiente.toString());
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="tipoPago"
+                    checked={pagarTotal}
+                    onChange={() => {
+                      setPagarTotal(true);
+                      setMontoPagoFactura(facturaSeleccionada.saldoPendiente.toString());
+                    }}
+                    className="pago-opcion-radio"
+                  />
+                  <div className="radio-custom"></div>
+                  <div className="pago-opcion-content">
+                    <div className="pago-opcion-title">Pagar Total</div>
+                    <div className="pago-opcion-desc">Cancelar la deuda completa</div>
+                  </div>
+                  {pagarTotal && <div className="pago-opcion-check">✓</div>}
+                </div>
+
+                <div 
+                  className={`pago-opcion-card ${!pagarTotal ? 'selected' : ''}`}
+                  onClick={() => {
+                    setPagarTotal(false);
+                    if (!montoPagoFactura) {
+                      setMontoPagoFactura('0');
+                    }
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="tipoPago"
+                    checked={!pagarTotal}
+                    onChange={() => {
+                      setPagarTotal(false);
+                      if (!montoPagoFactura) {
+                        setMontoPagoFactura('0');
+                      }
+                    }}
+                    className="pago-opcion-radio"
+                  />
+                  <div className="radio-custom"></div>
+                  <div className="pago-opcion-content">
+                    <div className="pago-opcion-title">Pagar Monto Parcial</div>
+                    <div className="pago-opcion-desc">Realizar un adelanto o entrega parcial</div>
+                  </div>
+                  {!pagarTotal && <div className="pago-opcion-check">✓</div>}
+                </div>
+              </div>
+
+              {!pagarTotal && (
+                <div className="pago-monto-parcial">
+                  <label>Monto a Pagar *</label>
+                  <div className="input-with-icon">
+                    <span className="input-icon">$</span>
+                    <input
+                      type="number"
+                      value={montoPagoFactura}
+                      onChange={(e) => {
+                        setMontoPagoFactura(e.target.value);
+                      }}
+                      placeholder="0"
+                      required
+                      className="input-monto"
+                      autoFocus
+                    />
+                  </div>
+                  <small>Máximo: {formatearMonto(facturaSeleccionada.saldoPendiente || 0)}</small>
+                </div>
+              )}
+
+              {!pagarTotal && montoPagoFactura && parseFloat(montoPagoFactura) > 0 && (
+                <div className="pago-saldo-restante">
+                  <div className="saldo-restante-label">Saldo restante después del pago:</div>
+                  <div className="saldo-restante-monto">
+                    {formatearMonto(Math.max(0, (facturaSeleccionada.saldoPendiente || 0) - parseFloat(montoPagoFactura || '0')))}
+                  </div>
+                </div>
+              )}
+
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={() => { setShowModalPago(false); setMontoPagoFactura(''); setPagarTotal(true); }}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary btn-confirmar" disabled={loading || (!pagarTotal && (!montoPagoFactura || parseFloat(montoPagoFactura) <= 0))}>
+                  {loading ? (
+                    <>
+                      <span className="spinner"></span>
+                      Procesando...
+                    </>
+                  ) : (
+                    `Confirmar Pago ${pagarTotal ? 'Total' : 'Parcial'}`
+                  )}
                 </button>
               </div>
             </form>

@@ -44,3 +44,6 @@ MovimientoCuentaCorrienteSchema.index({ proveedorId: 1, fecha: -1 });
 MovimientoCuentaCorrienteSchema.index({ tipo: 1, fecha: -1 });
 
 
+
+
+

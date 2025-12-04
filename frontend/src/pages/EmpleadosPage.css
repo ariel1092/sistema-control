@@ -14,24 +14,26 @@
 .page-title {
   font-size: 32px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin: 0;
 }
 
 .btn-primary {
-  background: #1e3a8a;
+  background: #b91c1c;
   color: white;
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.3);
 }
 
 .btn-primary:hover {
-  background: #1e40af;
+  background: #991b1b;
   transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(185, 28, 28, 0.4);
 }
 
 .btn-secondary {

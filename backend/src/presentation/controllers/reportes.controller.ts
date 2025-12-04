@@ -1,11 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { GetReporteFinancieroUseCase } from '../../application/use-cases/reportes/get-reporte-financiero.use-case';
 import { GetReporteSociosUseCase } from '../../application/use-cases/reportes/get-reporte-socios.use-case';
 import { GetReporteGastosAvanzadoUseCase } from '../../application/use-cases/reportes/get-reporte-gastos-avanzado.use-case';
-import { ReporteFinancieroDto } from '../../application/dtos/reportes/reporte-financiero.dto';
-import { ReporteSociosDto } from '../../application/dtos/reportes/reporte-socios.dto';
-import { ReporteGastosAvanzadoDto } from '../../application/dtos/reportes/reporte-gastos-avanzado.dto';
 
 @ApiTags('Reportes')
 @Controller('reportes')
@@ -17,40 +14,35 @@ export class ReportesController {
   ) {}
 
   @Get('financiero')
-  @ApiOperation({ summary: 'Obtener reporte financiero consolidado' })
-  @ApiResponse({ status: 200, description: 'Reporte financiero', type: ReporteFinancieroDto })
-  async getReporteFinanciero(
+  @ApiOperation({ summary: 'Obtener reporte financiero' })
+  getFinanciero(
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
-  ): Promise<ReporteFinancieroDto> {
-    const fechaInicioDate = fechaInicio ? new Date(fechaInicio) : undefined;
-    const fechaFinDate = fechaFin ? new Date(fechaFin) : undefined;
-    return this.getReporteFinancieroUseCase.execute(fechaInicioDate, fechaFinDate);
+  ) {
+    const inicio = fechaInicio ? new Date(fechaInicio) : undefined;
+    const fin = fechaFin ? new Date(fechaFin) : undefined;
+    return this.getReporteFinancieroUseCase.execute(inicio, fin);
   }
 
   @Get('socios')
-  @ApiOperation({ summary: 'Obtener reporte de balance de socios' })
-  @ApiResponse({ status: 200, description: 'Reporte de socios', type: ReporteSociosDto })
-  async getReporteSocios(
+  @ApiOperation({ summary: 'Obtener reporte de socios' })
+  getSocios(
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
-  ): Promise<ReporteSociosDto> {
-    const fechaInicioDate = fechaInicio ? new Date(fechaInicio) : undefined;
-    const fechaFinDate = fechaFin ? new Date(fechaFin) : undefined;
-    return this.getReporteSociosUseCase.execute(fechaInicioDate, fechaFinDate);
+  ) {
+    const inicio = fechaInicio ? new Date(fechaInicio) : undefined;
+    const fin = fechaFin ? new Date(fechaFin) : undefined;
+    return this.getReporteSociosUseCase.execute(inicio, fin);
   }
 
   @Get('gastos-avanzado')
-  @ApiOperation({ summary: 'Obtener reporte avanzado de gastos' })
-  @ApiResponse({ status: 200, description: 'Reporte de gastos avanzado', type: ReporteGastosAvanzadoDto })
-  async getReporteGastosAvanzado(
+  @ApiOperation({ summary: 'Obtener reporte de gastos avanzado' })
+  getGastosAvanzado(
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
-  ): Promise<ReporteGastosAvanzadoDto> {
-    const fechaInicioDate = fechaInicio ? new Date(fechaInicio) : undefined;
-    const fechaFinDate = fechaFin ? new Date(fechaFin) : undefined;
-    return this.getReporteGastosAvanzadoUseCase.execute(fechaInicioDate, fechaFinDate);
+  ) {
+    const inicio = fechaInicio ? new Date(fechaInicio) : undefined;
+    const fin = fechaFin ? new Date(fechaFin) : undefined;
+    return this.getReporteGastosAvanzadoUseCase.execute(inicio, fin);
   }
 }
-
-

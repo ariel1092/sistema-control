@@ -41,3 +41,9 @@ ClienteSchema.index({ nombre: 'text', razonSocial: 'text', dni: 'text' });
 
 
 
+
+
+
+
+
+

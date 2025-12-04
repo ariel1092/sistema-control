@@ -5,23 +5,39 @@
 }
 
 :root {
-  /* Colores Principales - Estilo Meta/Facebook */
-  --primary: #0866ff;
-  --primary-hover: #1877f2;
+  /* Colores Principales - Basados en logo Ferretería San Geronimo */
+  /* Rojo metálico del logo (accesible) */
+  --primary: #b91c1c;
+  --primary-hover: #991b1b;
+  --primary-light: #dc2626;
+  --primary-dark: #7f1d1d;
+  
+  /* Dorado/amarillo del logo (accesible) */
+  --accent: #b8860b;
+  --accent-hover: #92400e;
+  --accent-light: #d97706;
+  --accent-dark: #78350f;
+  
+  /* Gris oscuro del logo */
+  --dark: #1f2937;
+  --dark-hover: #111827;
+  --dark-light: #374151;
+  
+  /* Colores funcionales */
   --secondary: #42b72a;
-  --danger: #e41e3f;
-  --warning: #f79009;
-  --success: #42b72a;
-  --info: #1877f2;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --success: #059669;
+  --info: #0ea5e9;
   
   /* Colores Neutros */
-  --bg-primary: #f0f2f5;
+  --bg-primary: #f3f4f6;
   --bg-secondary: #ffffff;
-  --bg-hover: #f2f3f5;
-  --border-color: #e4e6eb;
-  --text-primary: #050505;
-  --text-secondary: #65676b;
-  --text-muted: #8a8d91;
+  --bg-hover: #f9fafb;
+  --border-color: #d1d5db;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
   
   /* Sombras Modernas */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -41,8 +57,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background-attachment: fixed;
+  background: #f3f4f6;
   color: var(--text-primary);
   line-height: 1.6;
 }

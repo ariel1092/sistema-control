@@ -119,3 +119,9 @@ export class GastoDiarioRepository implements IGastoDiarioRepository {
 }
 
 
+
+
+
+
+
+

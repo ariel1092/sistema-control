@@ -7,7 +7,7 @@
 .reporte-container h2 {
   font-size: 24px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin: 0 0 20px 0;
 }
 
@@ -41,7 +41,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: #b91c1c;
   border-radius: 12px;
   color: white;
 }
@@ -60,7 +60,7 @@
 .card-value {
   font-size: 24px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #b91c1c;
 }
 
 .card-value.ingresos {
@@ -106,7 +106,7 @@
 .chart-card h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin: 0 0 20px 0;
 }
 
@@ -126,7 +126,7 @@
 .info-card h4 {
   font-size: 18px;
   font-weight: 600;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin: 0 0 16px 0;
 }
 
@@ -195,5 +195,6 @@
     grid-template-columns: 1fr;
   }
 }
+
 
 

@@ -8,14 +8,14 @@ export class UsuarioMapper {
     if (!usuarioDoc) return null;
 
     return new Usuario(
-      usuarioDoc._id.toString(),
+      usuarioDoc._id?.toString() || usuarioDoc.id,
       usuarioDoc.nombre,
       usuarioDoc.email,
       usuarioDoc.passwordHash,
       usuarioDoc.rol as Rol,
-      usuarioDoc.activo,
-      usuarioDoc.createdAt,
-      usuarioDoc.updatedAt,
+      usuarioDoc.activo !== undefined ? usuarioDoc.activo : true,
+      usuarioDoc.createdAt || new Date(),
+      usuarioDoc.updatedAt || new Date(),
     );
   }
 

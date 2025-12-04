@@ -5,9 +5,13 @@ export interface IMovimientoCuentaCorrienteRepository {
   save(movimiento: MovimientoCuentaCorriente): Promise<MovimientoCuentaCorriente>;
   findById(id: string): Promise<MovimientoCuentaCorriente | null>;
   findByProveedor(proveedorId: string): Promise<MovimientoCuentaCorriente[]>;
+  findByDocumentoId(documentoId: string): Promise<MovimientoCuentaCorriente[]>;
   getUltimoSaldo(proveedorId: string): Promise<number>;
   getDeudaTotal(proveedorId: string): Promise<number>;
   findAll(): Promise<MovimientoCuentaCorriente[]>;
 }
+
+
+
 
 

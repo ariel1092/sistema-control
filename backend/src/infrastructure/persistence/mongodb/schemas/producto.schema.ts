@@ -37,6 +37,9 @@ export class ProductoMongo {
 
   @Prop({ required: true, default: true, index: true })
   activo: boolean;
+
+  @Prop({ required: false, index: true })
+  codigoBarras?: string;
 }
 
 export const ProductoSchema = SchemaFactory.createForClass(ProductoMongo);
@@ -44,6 +47,12 @@ export const ProductoSchema = SchemaFactory.createForClass(ProductoMongo);
 // Índices adicionales
 ProductoSchema.index({ nombre: 'text', descripcion: 'text' });
 ProductoSchema.index({ activo: 1, categoria: 1 });
+
+
+
+
+
+
 
 
 

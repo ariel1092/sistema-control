@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 import { DatabaseModule } from './database/database.module';
 import { VentasModule } from './ventas/ventas.module';
 import { ProductosModule } from './productos/productos.module';
@@ -7,28 +7,26 @@ import { CajaModule } from './caja/caja.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { EmpleadosModule } from './empleados/empleados.module';
 import { GastosDiariosModule } from './gastos-diarios/gastos-diarios.module';
-import { RetirosSociosModule } from './retiros-socios/retiros-socios.module';
 import { ReportesModule } from './reportes/reportes.module';
+import { RetirosSociosModule } from './retiros-socios/retiros-socios.module';
 import { ProveedoresModule } from './proveedores/proveedores.module';
+import { AuthModule } from './auth/auth.module';
+import { HealthController } from '../presentation/controllers/health.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
-    }),
     DatabaseModule,
+    AuthModule,
     VentasModule,
     ProductosModule,
     CajaModule,
     ClientesModule,
     EmpleadosModule,
     GastosDiariosModule,
-    RetirosSociosModule,
     ReportesModule,
+    RetirosSociosModule,
     ProveedoresModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
-
-

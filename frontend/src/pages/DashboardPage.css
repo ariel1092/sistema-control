@@ -1,6 +1,6 @@
 .dashboard-page {
   padding: 24px;
-  background: linear-gradient(135deg, #f0f4f8 0%, #e8f0f5 100%);
+  background: #f3f4f6;
   min-height: 100vh;
 }
 
@@ -25,10 +25,7 @@
 .page-title {
   font-size: 32px;
   font-weight: 800;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #b91c1c;
   margin: 0;
   display: flex;
   align-items: center;
@@ -58,16 +55,16 @@
 
 .period-select:hover,
 .date-input:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  border-color: #b91c1c;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.15);
   transform: translateY(-1px);
 }
 
 .period-select:focus,
 .date-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12), 0 4px 12px rgba(59, 130, 246, 0.15);
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 4px rgba(185, 28, 28, 0.12), 0 4px 12px rgba(185, 28, 28, 0.15);
   transform: translateY(-1px);
 }
 
@@ -106,7 +103,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+  background: #b91c1c;
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -127,9 +124,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1e40af 100%);
+  background: #b91c1c;
   border-radius: 16px;
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 16px rgba(185, 28, 28, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
@@ -173,10 +170,7 @@
 .card-value {
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #b91c1c;
   letter-spacing: -0.5px;
 }
 
@@ -188,7 +182,7 @@
 }
 
 .socio-card {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #b91c1c;
   background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
 }
 
@@ -212,8 +206,8 @@
 }
 
 .summary-card:nth-child(2) .card-icon {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1e40af 100%);
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: #b91c1c;
+  box-shadow: 0 8px 16px rgba(185, 28, 28, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .summary-card:nth-child(3) .card-icon {
@@ -254,10 +248,7 @@
 .chart-title {
   font-size: 22px;
   font-weight: 700;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #b91c1c;
   margin: 0 0 24px 0;
   padding-bottom: 16px;
   border-bottom: 2px solid #e2e8f0;

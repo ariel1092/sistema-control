@@ -37,6 +37,7 @@ export class CreateProductoUseCase {
       descripcion: dto.descripcion,
       marca: dto.marca,
       precioCosto: dto.precioCosto,
+      codigoBarras: dto.codigoBarras,
       activo: dto.activo !== undefined ? dto.activo : true,
     });
 

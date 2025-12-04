@@ -30,10 +30,15 @@ export class UpdateProveedorUseCase {
       vendedorAsignado: dto.vendedorAsignado,
       activo: dto.activo,
       observaciones: dto.observaciones,
+      plazoCuentaCorriente: dto.plazoCuentaCorriente,
+      descuento: dto.descuento,
     });
 
     return await this.proveedorRepository.save(proveedor);
   }
 }
+
+
+
 
 

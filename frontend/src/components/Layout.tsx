@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Layout.css';
 
 interface LayoutProps {
@@ -8,6 +9,8 @@ interface LayoutProps {
 
 function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -40,7 +43,19 @@ function Layout({ children }: LayoutProps) {
       {/* Menú Lateral */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h1 className="sidebar-logo">🏪 Ventas Ferretería</h1>
+          <div className="sidebar-logo-container">
+            <img 
+              src="/logo.png" 
+              alt="Ferretería San Geronimo" 
+              className="sidebar-logo-img"
+              onError={(e) => {
+                // Si no existe el logo, mostrar texto
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+            <h1 className="sidebar-logo">FERRETERÍA<br />SAN GERONIMO</h1>
+          </div>
           <button className="sidebar-close" onClick={closeSidebar} aria-label="Close menu">
             ✕
           </button>
@@ -128,7 +143,24 @@ function Layout({ children }: LayoutProps) {
             <span className="nav-icon">🏭</span>
             <span className="nav-text">Proveedores</span>
           </NavLink>
-                </nav>
+        </nav>
+
+        {/* Footer del Sidebar con info de usuario */}
+        <div className="sidebar-footer">
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">{user?.nombre || user?.email || 'Usuario'}</span>
+            <span className="sidebar-user-role">{user?.rol || 'Usuario'}</span>
+          </div>
+          <button 
+            className="sidebar-logout"
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+          >
+            Cerrar Sesión
+          </button>
+        </div>
       </aside>
 
       {/* Contenido Principal */}

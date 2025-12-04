@@ -63,7 +63,18 @@ export class CreateProductoDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @ApiProperty({ description: 'Código de barras', required: false })
+  @IsOptional()
+  @IsString()
+  codigoBarras?: string;
 }
+
+
+
+
+
+
 
 
 

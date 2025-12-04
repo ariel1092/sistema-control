@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ventasApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import './VentasPage.css';
 
 interface VentaReciente {
@@ -18,9 +19,9 @@ interface VentaReciente {
 }
 
 function VentasPage() {
+  const { user } = useAuth();
   const [efectivo, setEfectivo] = useState('');
-  const [transferenciaAbdul, setTransferenciaAbdul] = useState('');
-  const [transferenciaOsvaldo, setTransferenciaOsvaldo] = useState('');
+  const [transferenciaAbdul, setTransferenciaAbdul] = useState(''); // Reutilizamos este estado para transferencias
   const [creditoDebito, setCreditoDebito] = useState('');
   const [recargoDebito, setRecargoDebito] = useState('');
   const [tipoCreditoDebito, setTipoCreditoDebito] = useState<'CREDITO' | 'DEBITO'>('DEBITO');
@@ -30,15 +31,28 @@ function VentasPage() {
 
   // Resúmenes en tiempo real
   const [resumenEfectivo, setResumenEfectivo] = useState(0);
-  const [resumenAbdul, setResumenAbdul] = useState(0);
-  const [resumenOsvaldo, setResumenOsvaldo] = useState(0);
+  const [resumenTransferencias, setResumenTransferencias] = useState(0);
   const [resumenCreditoDebito, setResumenCreditoDebito] = useState(0);
+  
+  // Calcular total del día
+  const totalVentasDia = useMemo(() => {
+    const total = resumenEfectivo + resumenTransferencias + resumenCreditoDebito;
+    console.log('[VentasPage] Total del día calculado:', {
+      efectivo: resumenEfectivo,
+      transferencias: resumenTransferencias,
+      creditoDebito: resumenCreditoDebito,
+      total
+    });
+    return total;
+  }, [resumenEfectivo, resumenTransferencias, resumenCreditoDebito]);
 
   // Ventas recientes para deshacer (todas las ventas)
   const [todasVentasEfectivo, setTodasVentasEfectivo] = useState<VentaReciente[]>([]);
-  const [todasVentasAbdul, setTodasVentasAbdul] = useState<VentaReciente[]>([]);
-  const [todasVentasOsvaldo, setTodasVentasOsvaldo] = useState<VentaReciente[]>([]);
+  const [todasVentasTransferencias, setTodasVentasTransferencias] = useState<VentaReciente[]>([]);
   const [todasVentasCreditoDebito, setTodasVentasCreditoDebito] = useState<VentaReciente[]>([]);
+  
+  // Estado para seleccionar cuenta bancaria en transferencias
+  const [cuentaBancariaSeleccionada, setCuentaBancariaSeleccionada] = useState<'ABDUL' | 'OSVALDO'>('ABDUL');
 
   // Estados para modales
   const [modalAbierto, setModalAbierto] = useState<string | null>(null);
@@ -61,9 +75,11 @@ function VentasPage() {
           : [];
 
       // Calcular totales de efectivo
-      const ventasEfectivo = ventas.filter((v: VentaReciente) =>
-        v.metodosPago.some((mp) => mp.tipo === 'EFECTIVO')
-      );
+      const ventasEfectivo = ventas
+        .filter((v: VentaReciente) =>
+          v.metodosPago.some((mp) => mp.tipo === 'EFECTIVO')
+        )
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Ordenar por fecha más reciente primero
       const totalEfectivo = ventasEfectivo.reduce(
         (sum: number, v: VentaReciente) =>
           sum + (v.metodosPago.find((mp) => mp.tipo === 'EFECTIVO')?.monto || 0),
@@ -71,35 +87,28 @@ function VentasPage() {
       );
       setResumenEfectivo(totalEfectivo);
       setTodasVentasEfectivo(ventasEfectivo); // Guardar todas las ventas
+      console.log('Ventas efectivo cargadas:', ventasEfectivo.length, ventasEfectivo);
 
-      // Calcular totales de transferencias Abdul
-      const ventasAbdul = ventas.filter((v: VentaReciente) =>
-        v.metodosPago.some((mp) => mp.tipo === 'TRANSFERENCIA' && mp.cuentaBancaria === 'ABDUL')
-      );
-      const totalAbdul = ventasAbdul.reduce(
+      // Calcular totales de transferencias (todas juntas)
+      const ventasTransferencias = ventas
+        .filter((v: VentaReciente) =>
+          v.metodosPago.some((mp) => mp.tipo === 'TRANSFERENCIA')
+        )
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Ordenar por fecha más reciente primero
+      const totalTransferencias = ventasTransferencias.reduce(
         (sum: number, v: VentaReciente) =>
-          sum + (v.metodosPago.find((mp) => mp.tipo === 'TRANSFERENCIA' && mp.cuentaBancaria === 'ABDUL')?.monto || 0),
+          sum + (v.metodosPago.find((mp) => mp.tipo === 'TRANSFERENCIA')?.monto || 0),
         0
       );
-      setResumenAbdul(totalAbdul);
-      setTodasVentasAbdul(ventasAbdul); // Guardar todas las ventas
-
-      // Calcular totales de transferencias Osvaldo
-      const ventasOsvaldo = ventas.filter((v: VentaReciente) =>
-        v.metodosPago.some((mp) => mp.tipo === 'TRANSFERENCIA' && mp.cuentaBancaria === 'OSVALDO')
-      );
-      const totalOsvaldo = ventasOsvaldo.reduce(
-        (sum: number, v: VentaReciente) =>
-          sum + (v.metodosPago.find((mp) => mp.tipo === 'TRANSFERENCIA' && mp.cuentaBancaria === 'OSVALDO')?.monto || 0),
-        0
-      );
-      setResumenOsvaldo(totalOsvaldo);
-      setTodasVentasOsvaldo(ventasOsvaldo); // Guardar todas las ventas
+      setResumenTransferencias(totalTransferencias);
+      setTodasVentasTransferencias(ventasTransferencias); // Guardar todas las ventas
 
       // Calcular totales de crédito/débito
-      const ventasCreditoDebito = ventas.filter((v: VentaReciente) =>
-        v.metodosPago.some((mp) => mp.tipo === 'CREDITO' || mp.tipo === 'DEBITO')
-      );
+      const ventasCreditoDebito = ventas
+        .filter((v: VentaReciente) =>
+          v.metodosPago.some((mp) => mp.tipo === 'CREDITO' || mp.tipo === 'DEBITO')
+        )
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Ordenar por fecha más reciente primero
       const totalCreditoDebito = ventasCreditoDebito.reduce(
         (sum: number, v: VentaReciente) =>
           sum + (v.metodosPago.find((mp) => mp.tipo === 'CREDITO' || mp.tipo === 'DEBITO')?.monto || 0),
@@ -148,7 +157,14 @@ function VentasPage() {
         metodoPagoData.referencia = `TRF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       }
 
+      if (!user || !user.id) {
+        setError('Debe estar autenticado para registrar una venta');
+        setLoading(false);
+        return;
+      }
+
       const ventaData = {
+        vendedorId: user.id, // ID del usuario autenticado como vendedor
         items: [], // Sin productos, solo registro de pago
         metodosPago: [metodoPagoData],
         tipoComprobante: 'REMITO',
@@ -223,24 +239,14 @@ function VentasPage() {
     setEfectivo('');
   };
 
-  const handleTransferenciaAbdul = async () => {
-    const monto = parseFloat(transferenciaAbdul);
+  const handleTransferencia = async () => {
+    const monto = parseFloat(transferenciaAbdul); // Reutilizamos el estado existente
     if (isNaN(monto) || monto <= 0) {
       setError('Ingrese un monto válido');
       return;
     }
-    await guardarVenta('TRANSFERENCIA', monto, 'ABDUL');
+    await guardarVenta('TRANSFERENCIA', monto, cuentaBancariaSeleccionada);
     setTransferenciaAbdul('');
-  };
-
-  const handleTransferenciaOsvaldo = async () => {
-    const monto = parseFloat(transferenciaOsvaldo);
-    if (isNaN(monto) || monto <= 0) {
-      setError('Ingrese un monto válido');
-      return;
-    }
-    await guardarVenta('TRANSFERENCIA', monto, 'OSVALDO');
-    setTransferenciaOsvaldo('');
   };
 
   const handleCreditoDebito = async () => {
@@ -282,6 +288,12 @@ function VentasPage() {
       <div className="ventas-header">
         <h1 className="page-title">💰 Registro de Ventas</h1>
         <p className="page-subtitle">Registre las ventas por método de pago</p>
+        <div className="total-dia-container">
+          <div className="total-dia">
+            <span className="total-dia-label">Total del día:</span>
+            <span className="total-dia-monto">{formatearMonto(totalVentasDia || 0)}</span>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -313,9 +325,7 @@ function VentasPage() {
                   type="number"
                   value={efectivo}
                   onChange={(e) => setEfectivo(e.target.value)}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
+                  placeholder="0"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleEfectivo();
@@ -342,32 +352,34 @@ function VentasPage() {
               {/* Lista de ventas recientes */}
               {todasVentasEfectivo.length > 0 ? (
                 <div className="ventas-recientes">
-                  <h4>Ventas recientes ({todasVentasEfectivo.length}):</h4>
                   <div className="ventas-lista">
-                    {todasVentasEfectivo.slice(0, 10).map((venta) => (
-                      <div key={venta.id} className="venta-item">
-                        <div className="venta-info">
-                          <span className="venta-monto">{formatearMonto(venta.metodosPago[0]?.monto || 0)}</span>
-                          <span className="venta-hora">
-                            {format(new Date(venta.createdAt), 'HH:mm:ss')}
-                          </span>
+                    {todasVentasEfectivo.slice(0, 5).map((venta) => {
+                      console.log('Renderizando venta:', venta);
+                      return (
+                        <div key={venta.id} className="venta-item">
+                          <div className="venta-info">
+                            <span className="venta-monto">{formatearMonto(venta.metodosPago?.[0]?.monto || 0)}</span>
+                            <span className="venta-fecha-hora">
+                              {venta.createdAt ? format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm') : 'Sin fecha'}
+                            </span>
+                          </div>
+                          <button
+                            className="btn-undo"
+                            onClick={() => deshacerVenta(venta.id)}
+                            title="Deshacer venta"
+                          >
+                            ↶
+                          </button>
                         </div>
-                        <button
-                          className="btn-undo"
-                          onClick={() => deshacerVenta(venta.id)}
-                          title="Deshacer venta"
-                        >
-                          ↶
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                  {todasVentasEfectivo.length > 10 && (
+                  {todasVentasEfectivo.length > 5 && (
                     <button
                       className="btn-ver-mas"
                       onClick={() => abrirModal('efectivo', todasVentasEfectivo, 'Todas las Ventas en Efectivo')}
                     >
-                      Ver más ({todasVentasEfectivo.length - 10} más)
+                      Ver más ({todasVentasEfectivo.length - 5} más)
                     </button>
                   )}
                 </div>
@@ -389,144 +401,93 @@ function VentasPage() {
             <h2>Transferencias</h2>
           </div>
           <div className="section-content">
-            <div className="transferencias-grid">
-              {/* Abdul */}
-              <div className="transferencia-item">
-                <div className="transferencia-label">
-                  <span className="transferencia-icon">👤</span>
-                  <span>Abdul</span>
-                </div>
-                <div className="input-with-button">
+            <div className="input-group">
+              <label>Cuenta Bancaria</label>
+              <div className="radio-group">
+                <label>
                   <input
-                    type="number"
-                    value={transferenciaAbdul}
-                    onChange={(e) => setTransferenciaAbdul(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleTransferenciaAbdul();
-                      }
-                    }}
+                    type="radio"
+                    value="ABDUL"
+                    checked={cuentaBancariaSeleccionada === 'ABDUL'}
+                    onChange={(e) => setCuentaBancariaSeleccionada(e.target.value as 'ABDUL' | 'OSVALDO')}
                   />
-                  <button
-                    className="btn-primary"
-                    onClick={handleTransferenciaAbdul}
-                    disabled={loading || !transferenciaAbdul || parseFloat(transferenciaAbdul) <= 0}
-                  >
-                    Guardar
-                  </button>
-                </div>
+                  Abdul
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    value="OSVALDO"
+                    checked={cuentaBancariaSeleccionada === 'OSVALDO'}
+                    onChange={(e) => setCuentaBancariaSeleccionada(e.target.value as 'ABDUL' | 'OSVALDO')}
+                  />
+                  Osvaldo
+                </label>
+              </div>
+            </div>
+            
+            <div className="input-group">
+              <label>Monto</label>
+              <div className="input-with-button">
+                <input
+                  type="number"
+                  value={transferenciaAbdul}
+                  onChange={(e) => setTransferenciaAbdul(e.target.value)}
+                  placeholder="0"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleTransferencia();
+                    }
+                  }}
+                />
+                <button
+                  className="btn-primary"
+                  onClick={handleTransferencia}
+                  disabled={loading || !transferenciaAbdul || parseFloat(transferenciaAbdul) <= 0}
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
 
-                {/* Resumen Abdul */}
-                <div className="resumen-section">
-                  <div className="resumen-total">
-                    <span className="resumen-label">Total:</span>
-                    <span className="resumen-monto">{formatearMonto(resumenAbdul)}</span>
-                  </div>
-                  {todasVentasAbdul.length > 0 && (
-                    <div className="ventas-recientes">
-                      <div className="ventas-lista">
-                        {todasVentasAbdul.slice(0, 10).map((venta) => (
-                          <div key={venta.id} className="venta-item">
-                            <div className="venta-info">
-                              <span className="venta-monto">{formatearMonto(venta.metodosPago[0]?.monto || 0)}</span>
-                              <span className="venta-hora">
-                                {format(new Date(venta.createdAt), 'HH:mm:ss')}
-                              </span>
-                            </div>
-                            <button
-                              className="btn-undo"
-                              onClick={() => deshacerVenta(venta.id)}
-                              title="Deshacer venta"
-                            >
-                              ↶
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      {todasVentasAbdul.length > 10 && (
-                        <button
-                          className="btn-ver-mas"
-                          onClick={() => abrirModal('abdul', todasVentasAbdul, 'Todas las Transferencias - Abdul')}
-                        >
-                          Ver más ({todasVentasAbdul.length - 10} más)
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
+            {/* Resumen Transferencias */}
+            <div className="resumen-section">
+              <div className="resumen-total">
+                <span className="resumen-label">Total del día:</span>
+                <span className="resumen-monto">{formatearMonto(resumenTransferencias)}</span>
               </div>
 
-              {/* Osvaldo */}
-              <div className="transferencia-item">
-                <div className="transferencia-label">
-                  <span className="transferencia-icon">👤</span>
-                  <span>Osvaldo</span>
-                </div>
-                <div className="input-with-button">
-                  <input
-                    type="number"
-                    value={transferenciaOsvaldo}
-                    onChange={(e) => setTransferenciaOsvaldo(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleTransferenciaOsvaldo();
-                      }
-                    }}
-                  />
-                  <button
-                    className="btn-primary"
-                    onClick={handleTransferenciaOsvaldo}
-                    disabled={loading || !transferenciaOsvaldo || parseFloat(transferenciaOsvaldo) <= 0}
-                  >
-                    Guardar
-                  </button>
-                </div>
-
-                {/* Resumen Osvaldo */}
-                <div className="resumen-section">
-                  <div className="resumen-total">
-                    <span className="resumen-label">Total:</span>
-                    <span className="resumen-monto">{formatearMonto(resumenOsvaldo)}</span>
-                  </div>
-                  {todasVentasOsvaldo.length > 0 && (
-                    <div className="ventas-recientes">
-                      <div className="ventas-lista">
-                        {todasVentasOsvaldo.slice(0, 10).map((venta) => (
-                          <div key={venta.id} className="venta-item">
-                            <div className="venta-info">
-                              <span className="venta-monto">{formatearMonto(venta.metodosPago[0]?.monto || 0)}</span>
-                              <span className="venta-hora">
-                                {format(new Date(venta.createdAt), 'HH:mm:ss')}
-                              </span>
-                            </div>
-                            <button
-                              className="btn-undo"
-                              onClick={() => deshacerVenta(venta.id)}
-                              title="Deshacer venta"
-                            >
-                              ↶
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      {todasVentasOsvaldo.length > 10 && (
+              {todasVentasTransferencias.length > 0 && (
+                <div className="ventas-recientes">
+                  <div className="ventas-lista">
+                    {todasVentasTransferencias.slice(0, 5).map((venta) => (
+                      <div key={venta.id} className="venta-item">
+                        <div className="venta-info">
+                          <span className="venta-monto">{formatearMonto(venta.metodosPago[0]?.monto || 0)}</span>
+                          <span className="venta-tipo">{venta.metodosPago[0]?.cuentaBancaria || 'TRANSFERENCIA'}</span>
+                          <span className="venta-fecha-hora">
+                            {format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm')}
+                          </span>
+                        </div>
                         <button
-                          className="btn-ver-mas"
-                          onClick={() => abrirModal('osvaldo', todasVentasOsvaldo, 'Todas las Transferencias - Osvaldo')}
+                          className="btn-undo"
+                          onClick={() => deshacerVenta(venta.id)}
+                          title="Deshacer venta"
                         >
-                          Ver más ({todasVentasOsvaldo.length - 10} más)
+                          ↶
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    ))}
+                  </div>
+                  {todasVentasTransferencias.length > 5 && (
+                    <button
+                      className="btn-ver-mas"
+                      onClick={() => abrirModal('transferencias', todasVentasTransferencias, 'Todas las Transferencias')}
+                    >
+                      Ver más ({todasVentasTransferencias.length - 5} más)
+                    </button>
                   )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -568,9 +529,7 @@ function VentasPage() {
                 type="number"
                 value={creditoDebito}
                 onChange={(e) => setCreditoDebito(e.target.value)}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
+                placeholder="0"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     handleCreditoDebito();
@@ -587,9 +546,6 @@ function VentasPage() {
                   value={recargoDebito}
                   onChange={(e) => setRecargoDebito(e.target.value)}
                   placeholder="0"
-                  step="0.1"
-                  min="0"
-                  max="100"
                 />
               </div>
             )}
@@ -611,15 +567,14 @@ function VentasPage() {
 
               {todasVentasCreditoDebito.length > 0 && (
                 <div className="ventas-recientes">
-                  <h4>Ventas recientes ({todasVentasCreditoDebito.length}):</h4>
                   <div className="ventas-lista">
-                    {todasVentasCreditoDebito.slice(0, 10).map((venta) => (
+                    {todasVentasCreditoDebito.slice(0, 5).map((venta) => (
                       <div key={venta.id} className="venta-item">
                         <div className="venta-info">
                           <span className="venta-monto">{formatearMonto(venta.metodosPago[0]?.monto || 0)}</span>
                           <span className="venta-tipo">{venta.metodosPago[0]?.tipo}</span>
-                          <span className="venta-hora">
-                            {format(new Date(venta.createdAt), 'HH:mm:ss')}
+                          <span className="venta-fecha-hora">
+                            {format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm')}
                           </span>
                         </div>
                         <button
@@ -632,12 +587,12 @@ function VentasPage() {
                       </div>
                     ))}
                   </div>
-                  {todasVentasCreditoDebito.length > 10 && (
+                  {todasVentasCreditoDebito.length > 5 && (
                     <button
                       className="btn-ver-mas"
                       onClick={() => abrirModal('credito-debito', todasVentasCreditoDebito, 'Todas las Ventas en Crédito/Débito')}
                     >
-                      Ver más ({todasVentasCreditoDebito.length - 10} más)
+                      Ver más ({todasVentasCreditoDebito.length - 5} más)
                     </button>
                   )}
                 </div>

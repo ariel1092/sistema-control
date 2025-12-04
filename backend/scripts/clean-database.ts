@@ -17,6 +17,12 @@ import { OrdenCompraMongo } from '../src/infrastructure/persistence/mongodb/sche
 import { RemitoProveedorMongo } from '../src/infrastructure/persistence/mongodb/schemas/remito-proveedor.schema';
 import { FacturaProveedorMongo } from '../src/infrastructure/persistence/mongodb/schemas/factura-proveedor.schema';
 import { MovimientoCuentaCorrienteMongo } from '../src/infrastructure/persistence/mongodb/schemas/movimiento-cuenta-corriente.schema';
+import { MovimientoCajaMongo } from '../src/infrastructure/persistence/mongodb/schemas/movimiento-caja.schema';
+import { MovimientoStockMongo } from '../src/infrastructure/persistence/mongodb/schemas/movimiento-stock.schema';
+import { UsuarioMongo } from '../src/infrastructure/persistence/mongodb/schemas/usuario.schema';
+import { DetalleFacturaProveedorMongo } from '../src/infrastructure/persistence/mongodb/schemas/detalle-factura-proveedor.schema';
+import { DetalleRemitoMongo } from '../src/infrastructure/persistence/mongodb/schemas/detalle-remito.schema';
+import { DetalleOrdenCompraMongo } from '../src/infrastructure/persistence/mongodb/schemas/detalle-orden-compra.schema';
 
 async function cleanDatabase() {
   const app = await NestFactory.createApplicationContext(AppModule);
@@ -38,6 +44,12 @@ async function cleanDatabase() {
     const remitoProveedorModel = app.get<Model<any>>(getModelToken(RemitoProveedorMongo.name));
     const facturaProveedorModel = app.get<Model<any>>(getModelToken(FacturaProveedorMongo.name));
     const movimientoCCModel = app.get<Model<any>>(getModelToken(MovimientoCuentaCorrienteMongo.name));
+    const movimientoCajaModel = app.get<Model<any>>(getModelToken(MovimientoCajaMongo.name));
+    const movimientoStockModel = app.get<Model<any>>(getModelToken(MovimientoStockMongo.name));
+    const usuarioModel = app.get<Model<any>>(getModelToken(UsuarioMongo.name));
+    const detalleFacturaModel = app.get<Model<any>>(getModelToken(DetalleFacturaProveedorMongo.name));
+    const detalleRemitoModel = app.get<Model<any>>(getModelToken(DetalleRemitoMongo.name));
+    const detalleOrdenModel = app.get<Model<any>>(getModelToken(DetalleOrdenCompraMongo.name));
 
     // Limpiar colecciones
     console.log('🗑️  Eliminando datos...\n');
@@ -94,6 +106,30 @@ async function cleanDatabase() {
     await movimientoCCModel.deleteMany({});
     console.log(`   ✅ Movimientos cuenta corriente: ${movimientosCount} eliminados`);
 
+    const movimientosCajaCount = await movimientoCajaModel.countDocuments();
+    await movimientoCajaModel.deleteMany({});
+    console.log(`   ✅ Movimientos de caja: ${movimientosCajaCount} eliminados`);
+
+    const movimientosStockCount = await movimientoStockModel.countDocuments();
+    await movimientoStockModel.deleteMany({});
+    console.log(`   ✅ Movimientos de stock: ${movimientosStockCount} eliminados`);
+
+    const usuariosCount = await usuarioModel.countDocuments();
+    await usuarioModel.deleteMany({});
+    console.log(`   ✅ Usuarios: ${usuariosCount} eliminados`);
+
+    const detallesFacturaCount = await detalleFacturaModel.countDocuments();
+    await detalleFacturaModel.deleteMany({});
+    console.log(`   ✅ Detalles de factura: ${detallesFacturaCount} eliminados`);
+
+    const detallesRemitoCount = await detalleRemitoModel.countDocuments();
+    await detalleRemitoModel.deleteMany({});
+    console.log(`   ✅ Detalles de remito: ${detallesRemitoCount} eliminados`);
+
+    const detallesOrdenCount = await detalleOrdenModel.countDocuments();
+    await detalleOrdenModel.deleteMany({});
+    console.log(`   ✅ Detalles de orden: ${detallesOrdenCount} eliminados`);
+
     console.log('\n✅ Base de datos limpiada exitosamente!');
     console.log('📊 La base de datos ahora está vacía.');
 
@@ -109,5 +145,8 @@ cleanDatabase().catch((err) => {
   console.error('❌ Error fatal:', err);
   process.exit(1);
 });
+
+
+
 
 

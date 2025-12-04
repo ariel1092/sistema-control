@@ -1,6 +1,9 @@
 import { DetalleFacturaProveedor } from './detalle-factura-proveedor.entity';
+import { differenceInDays } from 'date-fns';
 
 export class FacturaProveedor {
+  public montoPagado: number = 0;
+
   constructor(
     public readonly id: string | undefined,
     public readonly numero: string,
@@ -8,11 +11,8 @@ export class FacturaProveedor {
     public readonly fecha: Date,
     public readonly fechaVencimiento: Date,
     public readonly detalles: DetalleFacturaProveedor[],
-    public readonly remitoId?: string, // Remito asociado
-    public readonly ordenCompraId?: string, // Orden de compra asociada
-    public readonly pagada: boolean = false,
-    public readonly montoPagado: number = 0,
-    public readonly fechaPago?: Date,
+    public readonly remitoId?: string,
+    public readonly ordenCompraId?: string,
     public readonly observaciones?: string,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date(),
@@ -21,7 +21,11 @@ export class FacturaProveedor {
   }
 
   private validate(): void {
-    if (!this.numero || this.numero.trim().length === 0) {
+    if (this.detalles.length === 0) {
+      throw new Error('Una factura debe tener al menos un detalle');
+    }
+
+    if (!this.numero || this.numero.trim() === '') {
       throw new Error('El número de factura es obligatorio');
     }
 
@@ -29,52 +33,48 @@ export class FacturaProveedor {
       throw new Error('El proveedor es obligatorio');
     }
 
-    if (this.detalles.length === 0) {
-      throw new Error('La factura debe tener al menos un detalle');
-    }
-
     if (this.fechaVencimiento < this.fecha) {
-      throw new Error('La fecha de vencimiento no puede ser anterior a la fecha de la factura');
-    }
-
-    if (this.montoPagado < 0) {
-      throw new Error('El monto pagado no puede ser negativo');
-    }
-
-    const total = this.calcularTotal();
-    if (this.montoPagado > total) {
-      throw new Error('El monto pagado no puede ser mayor al total de la factura');
+      throw new Error('La fecha de vencimiento no puede ser anterior a la fecha de factura');
     }
   }
 
-  public calcularSubtotal(): number {
-    return this.detalles.reduce((sum, detalle) => sum + detalle.calcularSubtotal(), 0);
+  public calcularSubtotalBruto(): number {
+    return this.detalles.reduce(
+      (sum, detalle) => sum + detalle.calcularSubtotalBruto(),
+      0,
+    );
   }
 
-  public calcularTotalIva(): number {
-    return this.detalles.reduce((sum, detalle) => {
-      const subtotal = detalle.calcularSubtotal();
-      return sum + (subtotal * (detalle.iva / 100));
-    }, 0);
+  public calcularDescuentoTotal(): number {
+    return this.detalles.reduce(
+      (sum, detalle) => sum + detalle.calcularDescuentoMonto(),
+      0,
+    );
   }
 
   public calcularTotal(): number {
-    return this.detalles.reduce((sum, detalle) => sum + detalle.calcularTotalConIva(), 0);
+    return this.detalles.reduce(
+      (sum, detalle) => sum + detalle.calcularTotalBrutoConIva(),
+      0,
+    );
   }
 
   public calcularSaldoPendiente(): number {
-    return this.calcularTotal() - this.montoPagado;
+    return Math.max(0, this.calcularTotal() - this.montoPagado);
+  }
+
+  public get pagada(): boolean {
+    return this.calcularSaldoPendiente() === 0;
   }
 
   public estaVencida(): boolean {
-    return new Date() > this.fechaVencimiento && !this.pagada;
+    return new Date() > this.fechaVencimiento;
   }
 
   public estaPorVencer(dias: number = 5): boolean {
     const hoy = new Date();
-    const fechaLimite = new Date(this.fechaVencimiento);
-    fechaLimite.setDate(fechaLimite.getDate() - dias);
-    return hoy >= fechaLimite && !this.pagada;
+    const diasHastaVencimiento = differenceInDays(this.fechaVencimiento, hoy);
+    return diasHastaVencimiento >= 0 && diasHastaVencimiento <= dias;
   }
 
   public registrarPago(monto: number): void {
@@ -82,27 +82,12 @@ export class FacturaProveedor {
       throw new Error('El monto del pago debe ser mayor a 0');
     }
 
-    const nuevoMontoPagado = this.montoPagado + monto;
-    const total = this.calcularTotal();
-
-    if (nuevoMontoPagado > total) {
-      throw new Error('El monto pagado no puede exceder el total de la factura');
+    const saldoPendiente = this.calcularSaldoPendiente();
+    if (monto > saldoPendiente) {
+      throw new Error(`El monto del pago ($${monto}) excede el saldo pendiente ($${saldoPendiente})`);
     }
 
-    (this as any).montoPagado = nuevoMontoPagado;
-    (this as any).fechaPago = new Date();
-
-    if (nuevoMontoPagado >= total) {
-      (this as any).pagada = true;
-    }
-  }
-
-  public asociarRemito(remitoId: string): void {
-    (this as any).remitoId = remitoId;
-  }
-
-  public asociarOrdenCompra(ordenCompraId: string): void {
-    (this as any).ordenCompraId = ordenCompraId;
+    this.montoPagado += monto;
   }
 
   static crear(params: {
@@ -115,21 +100,20 @@ export class FacturaProveedor {
     ordenCompraId?: string;
     observaciones?: string;
   }): FacturaProveedor {
+    const detalles = params.detalles.map((det) =>
+      det.asignarFactura(undefined as any),
+    );
+
     return new FacturaProveedor(
       undefined,
       params.numero,
       params.proveedorId,
       params.fecha,
       params.fechaVencimiento,
-      params.detalles,
+      detalles,
       params.remitoId,
       params.ordenCompraId,
-      false,
-      0,
-      undefined,
       params.observaciones,
     );
   }
 }
-
-

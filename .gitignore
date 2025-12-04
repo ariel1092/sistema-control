@@ -1,48 +1,50 @@
-# Excluir todos los archivos .md
-*.md
-
-# Node modules
+# Dependencies
 node_modules/
-**/node_modules/
+.pnp
+.pnp.js
 
-# Build outputs
+# Testing
+coverage/
+.nyc_output
+
+# Production
 dist/
-**/dist/
 build/
-**/build/
-
-# Environment files
-.env
-.env.local
-.env.*.local
-**/.env
-**/.env.local
-
-# Logs
 *.log
 logs/
-**/logs/
+*.pid
+*.seed
+*.pid.lock
 
-# OS files
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.env.development
 
 # IDE
 .vscode/
 .idea/
-*.sublime-*
+*.swp
+*.swo
+*~
+.DS_Store
 
-# Database files
-*.db
-*.sqlite
+# Docker
+.dockerignore
+
+# MongoDB
+data/
+mongodb_data/
 
 # Temporary files
 *.tmp
 *.temp
+.cache/
 
-# Excel files (si no quieres subirlos)
-# *.xlsx
-# *.xls
-
+# OS
+Thumbs.db
+.DS_Store

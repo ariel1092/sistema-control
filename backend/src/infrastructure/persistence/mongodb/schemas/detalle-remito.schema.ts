@@ -30,3 +30,6 @@ export class DetalleRemitoMongo {
 export const DetalleRemitoSchema = SchemaFactory.createForClass(DetalleRemitoMongo);
 
 
+
+
+

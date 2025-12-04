@@ -16,6 +16,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main",
     "start:prod:explicit": "cd $(pwd) && node dist/main.js",
+    "deploy": "npm run build && npm run start:prod",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -25,6 +26,7 @@
     "migration:excel": "ts-node scripts/migrate-excel.ts",
     "seed:products": "ts-node scripts/seed-products.ts",
     "seed:ventas": "ts-node scripts/seed-ventas.ts",
+    "seed:admin": "ts-node scripts/seed-admin.ts",
     "clean:db": "ts-node scripts/clean-database.ts",
     "create:indexes": "ts-node scripts/create-indexes.ts"
   },

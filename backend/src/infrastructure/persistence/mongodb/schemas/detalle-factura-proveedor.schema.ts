@@ -36,3 +36,6 @@ export class DetalleFacturaProveedorMongo {
 export const DetalleFacturaProveedorSchema = SchemaFactory.createForClass(DetalleFacturaProveedorMongo);
 
 
+
+
+

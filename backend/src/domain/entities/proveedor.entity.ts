@@ -1,5 +1,22 @@
-import { CategoriaProveedor } from '../enums/categoria-proveedor.enum';
-import { FormaPagoProveedor } from '../enums/forma-pago-proveedor.enum';
+export enum CategoriaProveedor {
+  FERRETERIA = 'FERRETERIA',
+  PLOMERIA = 'PLOMERIA',
+  ELECTRICIDAD = 'ELECTRICIDAD',
+  CONSTRUCCION = 'CONSTRUCCION',
+  PINTURAS = 'PINTURAS',
+  HERRAMIENTAS = 'HERRAMIENTAS',
+  SEGURIDAD = 'SEGURIDAD',
+  JARDINERIA = 'JARDINERIA',
+  OTROS = 'OTROS',
+}
+
+export enum FormaPagoHabitual {
+  EFECTIVO = 'EFECTIVO',
+  TRANSFERENCIA = 'TRANSFERENCIA',
+  MERCADOPAGO = 'MERCADOPAGO',
+  CUENTA_CORRIENTE = 'CUENTA_CORRIENTE',
+  CHEQUE = 'CHEQUE',
+}
 
 export class Proveedor {
   constructor(
@@ -11,12 +28,14 @@ export class Proveedor {
     public readonly telefono?: string,
     public readonly email?: string,
     public readonly categoria: CategoriaProveedor = CategoriaProveedor.OTROS,
-    public readonly productosProvee: string[] = [], // Lista de productos o familias
-    public readonly condicionesCompra: string = '', // Ej: "30/60 días"
-    public readonly formaPagoHabitual: FormaPagoProveedor = FormaPagoProveedor.CUENTA_CORRIENTE,
+    public readonly productosProvee: string[] = [],
+    public readonly condicionesCompra: string = '',
+    public readonly formaPagoHabitual: FormaPagoHabitual = FormaPagoHabitual.EFECTIVO,
     public readonly vendedorAsignado?: string,
     public readonly activo: boolean = true,
     public readonly observaciones?: string,
+    public readonly plazoCuentaCorriente?: string,
+    public readonly descuento?: number,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date(),
   ) {
@@ -27,30 +46,6 @@ export class Proveedor {
     if (!this.nombre || this.nombre.trim().length === 0) {
       throw new Error('El nombre del proveedor es obligatorio');
     }
-
-    if (this.cuit && !this.isValidCUIT(this.cuit)) {
-      throw new Error('El CUIT no es válido');
-    }
-
-    if (this.email && !this.isValidEmail(this.email)) {
-      throw new Error('El email no es válido');
-    }
-  }
-
-  private isValidCUIT(cuit: string): boolean {
-    // Validación básica de CUIT (formato XX-XXXXXXXX-X)
-    const cuitRegex = /^\d{2}-\d{8}-\d{1}$/;
-    return cuitRegex.test(cuit);
-  }
-
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  public calcularDeudaTotal(): number {
-    // Este método se calculará desde los movimientos de cuenta corriente
-    return 0;
   }
 
   public actualizarDatos(params: {
@@ -63,10 +58,12 @@ export class Proveedor {
     categoria?: CategoriaProveedor;
     productosProvee?: string[];
     condicionesCompra?: string;
-    formaPagoHabitual?: FormaPagoProveedor;
+    formaPagoHabitual?: FormaPagoHabitual;
     vendedorAsignado?: string;
     activo?: boolean;
     observaciones?: string;
+    plazoCuentaCorriente?: string;
+    descuento?: number;
   }): void {
     if (params.nombre !== undefined) {
       (this as any).nombre = params.nombre;
@@ -107,6 +104,12 @@ export class Proveedor {
     if (params.observaciones !== undefined) {
       (this as any).observaciones = params.observaciones;
     }
+    if (params.plazoCuentaCorriente !== undefined) {
+      (this as any).plazoCuentaCorriente = params.plazoCuentaCorriente;
+    }
+    if (params.descuento !== undefined) {
+      (this as any).descuento = params.descuento;
+    }
     this.validate();
   }
 
@@ -120,10 +123,12 @@ export class Proveedor {
     categoria?: CategoriaProveedor;
     productosProvee?: string[];
     condicionesCompra?: string;
-    formaPagoHabitual?: FormaPagoProveedor;
+    formaPagoHabitual?: FormaPagoHabitual;
     vendedorAsignado?: string;
     activo?: boolean;
     observaciones?: string;
+    plazoCuentaCorriente?: string;
+    descuento?: number;
   }): Proveedor {
     return new Proveedor(
       undefined,
@@ -136,12 +141,12 @@ export class Proveedor {
       params.categoria || CategoriaProveedor.OTROS,
       params.productosProvee || [],
       params.condicionesCompra || '',
-      params.formaPagoHabitual || FormaPagoProveedor.CUENTA_CORRIENTE,
+      params.formaPagoHabitual || FormaPagoHabitual.EFECTIVO,
       params.vendedorAsignado,
       params.activo !== undefined ? params.activo : true,
       params.observaciones,
+      params.plazoCuentaCorriente,
+      params.descuento,
     );
   }
 }
-
-

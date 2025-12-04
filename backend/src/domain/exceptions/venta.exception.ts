@@ -10,3 +10,9 @@ export class VentaDomainException extends DomainException {
 
 
 
+
+
+
+
+
+

@@ -28,3 +28,9 @@ import { GastoDiarioMongo, GastoDiarioSchema } from '../../infrastructure/persis
 export class GastosDiariosModule {}
 
 
+
+
+
+
+
+

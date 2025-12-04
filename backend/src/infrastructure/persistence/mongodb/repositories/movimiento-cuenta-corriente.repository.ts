@@ -44,6 +44,23 @@ export class MovimientoCuentaCorrienteRepository implements IMovimientoCuentaCor
     return movimientosDocs.map((doc) => MovimientoCuentaCorrienteMapper.toDomain(doc));
   }
 
+  async findByDocumentoId(documentoId: string): Promise<MovimientoCuentaCorriente[]> {
+    console.log(`[MovimientoRepository] Buscando movimientos para documentoId: ${documentoId}`);
+    
+    // Buscar como string (documentoId se guarda como string en el schema)
+    const movimientosDocs = await this.movimientoModel
+      .find({ documentoId: documentoId })
+      .sort({ fecha: -1 })
+      .exec();
+
+    console.log(`[MovimientoRepository] Movimientos encontrados: ${movimientosDocs.length}`);
+    if (movimientosDocs.length > 0) {
+      console.log(`[MovimientoRepository] Primer movimiento - documentoId: ${movimientosDocs[0].documentoId}, tipo: ${movimientosDocs[0].tipo}`);
+    }
+    
+    return movimientosDocs.map((doc) => MovimientoCuentaCorrienteMapper.toDomain(doc));
+  }
+
   async getUltimoSaldo(proveedorId: string): Promise<number> {
     const ultimoMovimiento = await this.movimientoModel
       .findOne({ proveedorId: new Types.ObjectId(proveedorId) })
@@ -63,5 +80,8 @@ export class MovimientoCuentaCorrienteRepository implements IMovimientoCuentaCor
     return movimientosDocs.map((doc) => MovimientoCuentaCorrienteMapper.toDomain(doc));
   }
 }
+
+
+
 
 

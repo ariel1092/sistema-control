@@ -4,6 +4,7 @@ import { DetalleVenta } from '../../../domain/entities/detalle-venta.entity';
 import { MetodoPago } from '../../../domain/value-objects/metodo-pago.vo';
 import { IVentaRepository } from '../../ports/venta.repository.interface';
 import { IProductoRepository } from '../../ports/producto.repository.interface';
+import { RegistrarVentaStockUseCase } from '../productos/registrar-venta-stock.use-case';
 import { CreateVentaDto } from '../../dtos/ventas/create-venta.dto';
 import { VentaApplicationException } from '../../exceptions/venta-application.exception';
 import { TipoMetodoPago } from '../../../domain/enums/tipo-metodo-pago.enum';
@@ -17,6 +18,7 @@ export class CreateVentaUseCase {
     private readonly ventaRepository: IVentaRepository,
     @Inject('IProductoRepository')
     private readonly productoRepository: IProductoRepository,
+    private readonly registrarVentaStockUseCase: RegistrarVentaStockUseCase,
   ) {}
 
   private generarNumeroVentaUnico(tipoComprobante?: TipoComprobante): string {
@@ -202,22 +204,20 @@ export class CreateVentaUseCase {
       numero: numeroVenta,
     });
 
+    // 6. Guardar la venta (o presupuesto) primero para obtener el ID
+    const ventaGuardada = await this.ventaRepository.save(venta);
+
     // 5. Descontar stock de cada producto SOLO si NO es presupuesto y hay detalles
     if (!esPresupuesto && detalles.length > 0) {
       for (const detalle of detalles) {
-        const producto = await this.productoRepository.findById(detalle.productoId);
-        if (!producto) {
-          throw new VentaApplicationException(
-            `Producto ${detalle.productoId} no encontrado al descontar stock`,
-          );
-        }
-        producto.descontar(detalle.cantidad);
-        await this.productoRepository.update(producto);
+        await this.registrarVentaStockUseCase.execute(
+          detalle.productoId,
+          detalle.cantidad,
+          ventaGuardada.id!,
+          vendedorId,
+        );
       }
     }
-
-    // 6. Guardar la venta (o presupuesto)
-    const ventaGuardada = await this.ventaRepository.save(venta);
 
     // 7. TODO: Si es cuenta corriente, actualizar saldo del cliente
     // if (dto.esCuentaCorriente && dto.clienteDNI) {

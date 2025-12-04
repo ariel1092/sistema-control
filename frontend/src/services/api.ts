@@ -1,121 +1,222 @@
 import axios from 'axios';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor para manejar errores
-api.interceptors.response.use(
-  (response) => response,
+// Interceptor para agregar el token JWT a las peticiones
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
   (error) => {
-    const message = error.response?.data?.message || error.message || 'Error desconocido';
-    console.error('API Error:', message);
-    throw new Error(message);
+    return Promise.reject(error);
   }
 );
 
-// Ventas
-export const ventasApi = {
-  crear: (data: any) => api.post('/ventas', data),
-  obtenerDia: (fecha?: string) => api.get('/ventas/dia', { params: { fecha } }),
-  obtenerRecientes: (fecha?: string, tipoMetodoPago?: string) => 
-    api.get('/ventas/recientes', { params: { fecha, tipoMetodoPago } }),
-  cancelar: (id: string, motivo?: string) => api.patch(`/ventas/${id}/cancelar`, { motivo }),
-  obtenerTransferencias: (cuentaBancaria: string, fechaInicio?: string, fechaFin?: string) =>
-    api.get(`/ventas/transferencias/${cuentaBancaria}`, { params: { fechaInicio, fechaFin } }),
+// Interceptor para manejar errores de respuesta
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token inválido o expirado
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// API de Autenticación
+export const authApi = {
+  login: (email: string, password: string) =>
+    api.post('/auth/login', { email, password }),
+  register: (data: any) =>
+    api.post('/auth/register', data),
+  getProfile: () =>
+    api.get('/auth/profile'),
 };
 
-// Productos
-export const productosApi = {
-  crear: (data: any) => api.post('/productos', data),
-  buscar: (termino: string) => api.get('/productos/search', { params: { q: termino } }),
-  obtenerPorCodigo: (codigo: string) => api.get(`/productos/codigo/${codigo}`),
-  obtenerPorId: (id: string) => api.get(`/productos/${id}`),
-  actualizarPrecio: (id: string, precioVenta: number) =>
-    api.patch(`/productos/${id}/precio`, { precioVenta }),
-  actualizarStock: (id: string, stockActual: number) =>
-    api.patch(`/productos/${id}/stock`, { stockActual }),
-};
-
-// Caja
+// API de Caja
 export const cajaApi = {
-  obtenerResumen: (fecha?: string) => api.get('/caja/resumen', { params: { fecha } }),
-  obtenerHistorial: (desde: string, hasta: string) =>
-    api.get('/caja/historial', { params: { desde, hasta } }),
-  abrir: (data: any) => api.post('/caja/abrir', data),
-  cerrar: (data: any) => api.post('/caja/cerrar', data),
+  obtenerResumen: (fecha: string) =>
+    api.get(`/caja/resumen?fecha=${fecha}`),
+  abrirCaja: (montoInicial: number, usuarioId: string) =>
+    api.post(`/caja/abrir?usuarioId=${usuarioId}`, { montoInicial }),
+  cerrarCaja: (data: { montoFinal: number; observaciones?: string }, usuarioId: string) =>
+    api.post(`/caja/cerrar?usuarioId=${usuarioId}`, data),
+  crearMovimiento: (data: { tipo: 'INGRESO' | 'SALIDA'; monto: number; motivo: string }, usuarioId: string) =>
+    api.post(`/caja/movimientos?usuarioId=${usuarioId}`, data),
+  obtenerHistorial: (fechaInicio?: string, fechaFin?: string) => {
+    const params = new URLSearchParams();
+    if (fechaInicio) params.append('fechaInicio', fechaInicio);
+    if (fechaFin) params.append('fechaFin', fechaFin);
+    return api.get(`/caja/historial?${params.toString()}`);
+  },
 };
 
-// Clientes
+// API de Ventas
+export const ventasApi = {
+  obtenerTodas: () =>
+    api.get('/ventas'),
+  obtenerPorId: (id: string) =>
+    api.get(`/ventas/${id}`),
+  obtenerPorRango: (fechaInicio: string, fechaFin: string) =>
+    api.get(`/ventas/rango?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
+  obtenerRecientes: (fecha: string) =>
+    api.get(`/ventas?fecha=${fecha}`),
+  obtenerTransferencias: (socio: string, fechaInicio: string, fechaFin: string) =>
+    api.get(`/ventas/transferencias?socio=${socio}&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
+  crear: (data: any) =>
+    api.post('/ventas', data),
+  cancelar: (id: string, motivo: string) =>
+    api.post(`/ventas/${id}/cancelar`, { motivo }),
+};
+
+// API de Productos
+export const productosApi = {
+  buscar: (termino: string) =>
+    api.get(`/productos?q=${encodeURIComponent(termino)}`),
+  obtenerTodos: (activos?: boolean) =>
+    api.get(`/productos?all=true`),
+  obtenerPorId: (id: string) =>
+    api.get(`/productos/${id}`),
+  obtenerAlertas: () =>
+    api.get('/productos/alertas'),
+  obtenerMovimientos: (productoId?: string, tipo?: string, fechaInicio?: string, fechaFin?: string) => {
+    const params = new URLSearchParams();
+    if (productoId) params.append('productoId', productoId);
+    if (tipo) params.append('tipo', tipo);
+    if (fechaInicio) params.append('fechaInicio', fechaInicio);
+    if (fechaFin) params.append('fechaFin', fechaFin);
+    return api.get(`/productos/movimientos?${params.toString()}`);
+  },
+  crear: (data: any) =>
+    api.post('/productos', data),
+  actualizar: (id: string, data: any) =>
+    api.put(`/productos/${id}`, data),
+  eliminar: (id: string) =>
+    api.delete(`/productos/${id}`),
+  ingresarStock: (id: string, data: { cantidad: number; descripcion: string }) =>
+    api.post(`/productos/${id}/stock/ingresar`, data),
+  descontarStock: (id: string, data: { cantidad: number; motivo: string }) =>
+    api.post(`/productos/${id}/stock/descontar`, data),
+  ajustarInventario: (id: string, data: { cantidad: number; motivo: string }) =>
+    api.post(`/productos/${id}/stock/ajustar`, data),
+};
+
+// API de Clientes
 export const clientesApi = {
-  crear: (data: any) => api.post('/clientes', data),
-  obtenerTodos: () => api.get('/clientes'),
-  buscar: (termino: string) => api.get('/clientes/search', { params: { q: termino } }),
-  obtenerPorId: (id: string) => api.get(`/clientes/${id}`),
-  actualizar: (id: string, data: any) => api.put(`/clientes/${id}`, data),
-  eliminar: (id: string) => api.delete(`/clientes/${id}`),
+  obtenerTodos: () =>
+    api.get('/clientes'),
+  obtenerPorId: (id: string) =>
+    api.get(`/clientes/${id}`),
+  crear: (data: any) =>
+    api.post('/clientes', data),
+  actualizar: (id: string, data: any) =>
+    api.put(`/clientes/${id}`, data),
+  eliminar: (id: string) =>
+    api.delete(`/clientes/${id}`),
 };
 
-// Empleados
+// API de Empleados
 export const empleadosApi = {
-  crear: (data: any) => api.post('/empleados', data),
-  obtenerTodos: (activos?: boolean) => api.get('/empleados', { params: activos !== undefined ? { activos } : {} }),
-  obtenerPorId: (id: string) => api.get(`/empleados/${id}`),
-  actualizar: (id: string, data: any) => api.put(`/empleados/${id}`, data),
-  registrarPago: (id: string, data: any) => api.post(`/empleados/${id}/pagos`, data),
-  registrarAdelanto: (id: string, data: any) => api.post(`/empleados/${id}/adelantos`, data),
-  registrarAsistencia: (id: string, data: any) => api.post(`/empleados/${id}/asistencias`, data),
-  agregarDocumento: (id: string, data: any) => api.post(`/empleados/${id}/documentos`, data),
-  activar: (id: string) => api.patch(`/empleados/${id}/activar`),
-  desactivar: (id: string) => api.patch(`/empleados/${id}/desactivar`),
+  obtenerTodos: (incluirInactivos?: boolean) => {
+    const params = incluirInactivos ? '?incluirInactivos=true' : '';
+    return api.get(`/empleados${params}`);
+  },
+  obtenerPorId: (id: string) =>
+    api.get(`/empleados/${id}`),
+  crear: (data: any) =>
+    api.post('/empleados', data),
+  actualizar: (id: string, data: any) =>
+    api.put(`/empleados/${id}`, data),
+  eliminar: (id: string) =>
+    api.delete(`/empleados/${id}`),
+  registrarPago: (id: string, data: any) =>
+    api.post(`/empleados/${id}/pagos`, data),
+  registrarAdelanto: (id: string, data: any) =>
+    api.post(`/empleados/${id}/adelantos`, data),
+  registrarAsistencia: (id: string, data: any) =>
+    api.post(`/empleados/${id}/asistencias`, data),
+  agregarDocumento: (id: string, data: any) =>
+    api.post(`/empleados/${id}/documentos`, data),
 };
 
-// Gastos Diarios
+// API de Gastos
 export const gastosApi = {
-  crear: (data: any) => api.post('/gastos-diarios', data),
-  obtenerTodos: (fechaInicio?: string, fechaFin?: string, categoria?: string) =>
-    api.get('/gastos-diarios', { params: { fechaInicio, fechaFin, categoria } }),
+  obtenerTodos: (fechaInicio?: string, fechaFin?: string) => {
+    const params = new URLSearchParams();
+    if (fechaInicio) params.append('fechaInicio', fechaInicio);
+    if (fechaFin) params.append('fechaFin', fechaFin);
+    return api.get(`/gastos?${params.toString()}`);
+  },
+  obtenerPorId: (id: string) =>
+    api.get(`/gastos/${id}`),
+  crear: (data: any) =>
+    api.post('/gastos', data),
+  actualizar: (id: string, data: any) =>
+    api.put(`/gastos/${id}`, data),
+  eliminar: (id: string) =>
+    api.delete(`/gastos/${id}`),
   obtenerResumen: (fechaInicio: string, fechaFin: string) =>
-    api.get('/gastos-diarios/resumen', { params: { fechaInicio, fechaFin } }),
-  eliminar: (id: string) => api.delete(`/gastos-diarios/${id}`),
+    api.get(`/gastos/resumen?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
 };
 
-// Retiros Socios
-export const retirosApi = {
-  crear: (data: any) => api.post('/retiros-socios', data),
-  obtenerTodos: (cuentaBancaria?: string, fechaInicio?: string, fechaFin?: string) =>
-    api.get('/retiros-socios', { params: { cuentaBancaria, fechaInicio, fechaFin } }),
-  eliminar: (id: string) => api.delete(`/retiros-socios/${id}`),
-};
-
-// Reportes
-export const reportesApi = {
-  financiero: (fechaInicio?: string, fechaFin?: string) =>
-    api.get('/reportes/financiero', { params: { fechaInicio, fechaFin } }),
-  socios: (fechaInicio?: string, fechaFin?: string) =>
-    api.get('/reportes/socios', { params: { fechaInicio, fechaFin } }),
-  gastosAvanzado: (fechaInicio?: string, fechaFin?: string) =>
-    api.get('/reportes/gastos-avanzado', { params: { fechaInicio, fechaFin } }),
-};
-
-// Proveedores
+// API de Proveedores
 export const proveedoresApi = {
-  crear: (data: any) => api.post('/proveedores', data),
-  obtenerTodos: (activo?: boolean) => api.get('/proveedores', { params: activo !== undefined ? { activo } : {} }),
-  obtenerPorId: (id: string) => api.get(`/proveedores/${id}`),
-  actualizar: (id: string, data: any) => api.put(`/proveedores/${id}`, data),
-  eliminar: (id: string) => api.delete(`/proveedores/${id}`),
-  obtenerCuentaCorriente: (id: string) => api.get(`/proveedores/${id}/cuenta-corriente`),
-  crearOrdenCompra: (id: string, data: any) => api.post(`/proveedores/${id}/ordenes-compra`, data),
-  crearFactura: (data: any) => api.post('/proveedores/facturas', data),
-  registrarPago: (facturaId: string, data: any) => api.post(`/proveedores/facturas/${facturaId}/pago`, data),
+  obtenerTodos: () =>
+    api.get('/proveedores'),
+  obtenerPorId: (id: string) =>
+    api.get(`/proveedores/${id}`),
+  crear: (data: any) =>
+    api.post('/proveedores', data),
+  actualizar: (id: string, data: any) =>
+    api.put(`/proveedores/${id}`, data),
+  obtenerCuentaCorriente: (proveedorId: string) =>
+    api.get(`/proveedores/${proveedorId}/cuenta-corriente`),
+  obtenerFacturas: (proveedorId: string) =>
+    api.get(`/proveedores/${proveedorId}/facturas`),
+  obtenerFacturaPorId: (id: string) =>
+    api.get(`/proveedores/facturas/${id}`),
+  registrarPago: (facturaId: string, data: { monto: number; metodoPago?: string; observaciones?: string }) =>
+    api.post(`/proveedores/facturas/${facturaId}/pago`, data),
+  cargarFactura: (proveedorId: string, data: any) =>
+    api.post(`/proveedores/${proveedorId}/facturas`, data),
+};
+
+// API de Retiros
+export const retirosApi = {
+  obtenerTodos: (fechaInicio?: string, fechaFin?: string) => {
+    const params = new URLSearchParams();
+    if (fechaInicio) params.append('fechaInicio', fechaInicio);
+    if (fechaFin) params.append('fechaFin', fechaFin);
+    return api.get(`/retiros?${params.toString()}`);
+  },
+  crear: (data: any) =>
+    api.post('/retiros', data),
+  eliminar: (id: string) =>
+    api.delete(`/retiros/${id}`),
+};
+
+// API de Reportes
+export const reportesApi = {
+  financiero: (fechaInicio: string, fechaFin: string) =>
+    api.get(`/reportes/financiero?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
+  socios: (fechaInicio: string, fechaFin: string) =>
+    api.get(`/reportes/socios?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
+  gastosAvanzado: (fechaInicio: string, fechaFin: string) =>
+    api.get(`/reportes/gastos-avanzado?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
 };
 
 export default api;
-
-

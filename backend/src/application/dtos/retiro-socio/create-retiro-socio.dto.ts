@@ -7,6 +7,11 @@ export class CreateRetiroSocioDto {
   @IsDateString()
   fecha: string;
 
+  @ApiProperty({ description: 'Hora del retiro', example: '14:30', required: false })
+  @IsOptional()
+  @IsString()
+  hora?: string;
+
   @ApiProperty({ enum: CuentaBancaria, description: 'Cuenta bancaria del socio' })
   @IsEnum(CuentaBancaria)
   cuentaBancaria: CuentaBancaria;
@@ -25,5 +30,11 @@ export class CreateRetiroSocioDto {
   @IsString()
   observaciones?: string;
 }
+
+
+
+
+
+
 
 

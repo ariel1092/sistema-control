@@ -11,7 +11,7 @@ import { TipoComprobante } from '../src/domain/enums/tipo-comprobante.enum';
 import { CuentaBancaria } from '../src/domain/enums/cuenta-bancaria.enum';
 import { CategoriaGasto, MetodoPagoGasto } from '../src/domain/entities/gasto-diario.entity';
 import { CategoriaProveedor } from '../src/domain/enums/categoria-proveedor.enum';
-import { FormaPagoProveedor } from '../src/domain/enums/forma-pago-proveedor.enum';
+import { FormaPagoHabitual } from '../src/domain/entities/proveedor.entity';
 import { Types } from 'mongoose';
 
 async function bootstrap() {
@@ -95,7 +95,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.FERRETERIA,
       productosProvee: ['Herramientas manuales', 'Fijaciones', 'Materiales de construcción'],
       condicionesCompra: '30/60 días',
-      formaPagoHabitual: FormaPagoProveedor.CUENTA_CORRIENTE,
+      formaPagoHabitual: FormaPagoHabitual.CUENTA_CORRIENTE,
       vendedorAsignado: 'Carlos López',
       activo: true,
       observaciones: 'Proveedor principal de herramientas',
@@ -110,7 +110,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.PINTURAS,
       productosProvee: ['Pinturas', 'Bróchas', 'Rodillos', 'Diluyentes'],
       condicionesCompra: 'Contado o 15 días',
-      formaPagoHabitual: FormaPagoProveedor.TRANSFERENCIA,
+      formaPagoHabitual: FormaPagoHabitual.TRANSFERENCIA,
       vendedorAsignado: 'María García',
       activo: true,
       observaciones: 'Especialista en pinturas de calidad',
@@ -125,7 +125,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.ELECTRICIDAD,
       productosProvee: ['Cables', 'Interruptores', 'Lámparas', 'Accesorios eléctricos'],
       condicionesCompra: '30 días',
-      formaPagoHabitual: FormaPagoProveedor.CUENTA_CORRIENTE,
+      formaPagoHabitual: FormaPagoHabitual.CUENTA_CORRIENTE,
       vendedorAsignado: 'Juan Pérez',
       activo: true,
       observaciones: 'Proveedor de materiales eléctricos',
@@ -140,7 +140,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.PLOMERIA,
       productosProvee: ['Caños', 'Grifería', 'Sanitarios', 'Accesorios de plomería'],
       condicionesCompra: 'Efectivo o transferencia',
-      formaPagoHabitual: FormaPagoProveedor.EFECTIVO,
+      formaPagoHabitual: FormaPagoHabitual.EFECTIVO,
       vendedorAsignado: 'Ana Rodríguez',
       activo: true,
       observaciones: 'Especialista en plomería',
@@ -155,7 +155,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.CONSTRUCCION,
       productosProvee: ['Cemento', 'Ladrillos', 'Arena', 'Cal', 'Hierros'],
       condicionesCompra: '60 días',
-      formaPagoHabitual: FormaPagoProveedor.CUENTA_CORRIENTE,
+      formaPagoHabitual: FormaPagoHabitual.CUENTA_CORRIENTE,
       vendedorAsignado: 'Carlos López',
       activo: true,
       observaciones: 'Mayorista de materiales de construcción',
@@ -170,7 +170,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.HERRAMIENTAS,
       productosProvee: ['Herramientas eléctricas', 'Herramientas manuales', 'Equipos de seguridad'],
       condicionesCompra: '30 días',
-      formaPagoHabitual: FormaPagoProveedor.CUENTA_CORRIENTE,
+      formaPagoHabitual: FormaPagoHabitual.CUENTA_CORRIENTE,
       vendedorAsignado: 'María García',
       activo: true,
       observaciones: 'Herramientas de alta calidad',
@@ -185,7 +185,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.SEGURIDAD,
       productosProvee: ['Candados', 'Alarmas', 'Cámaras', 'Cercos eléctricos'],
       condicionesCompra: 'Contado',
-      formaPagoHabitual: FormaPagoProveedor.MERCADOPAGO,
+      formaPagoHabitual: FormaPagoHabitual.MERCADOPAGO,
       vendedorAsignado: 'Juan Pérez',
       activo: true,
       observaciones: 'Equipos de seguridad',
@@ -200,7 +200,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.JARDINERIA,
       productosProvee: ['Plantas', 'Fertilizantes', 'Herramientas de jardín', 'Mangueras'],
       condicionesCompra: '15 días',
-      formaPagoHabitual: FormaPagoProveedor.TRANSFERENCIA,
+      formaPagoHabitual: FormaPagoHabitual.TRANSFERENCIA,
       vendedorAsignado: 'Ana Rodríguez',
       activo: true,
       observaciones: 'Todo para jardín',
@@ -215,7 +215,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.OTROS,
       productosProvee: ['Productos varios', 'Accesorios', 'Repuestos'],
       condicionesCompra: '30/60 días',
-      formaPagoHabitual: FormaPagoProveedor.CHEQUE,
+      formaPagoHabitual: FormaPagoHabitual.CHEQUE,
       vendedorAsignado: 'Carlos López',
       activo: true,
       observaciones: 'Distribuidora general con amplio catálogo',
@@ -230,7 +230,7 @@ async function bootstrap() {
       categoria: CategoriaProveedor.FERRETERIA,
       productosProvee: ['Herramientas básicas', 'Fijaciones', 'Pinturas básicas'],
       condicionesCompra: 'Efectivo',
-      formaPagoHabitual: FormaPagoProveedor.EFECTIVO,
+      formaPagoHabitual: FormaPagoHabitual.EFECTIVO,
       vendedorAsignado: 'María García',
       activo: false,
       observaciones: 'Proveedor inactivo - pendiente renovación de contrato',

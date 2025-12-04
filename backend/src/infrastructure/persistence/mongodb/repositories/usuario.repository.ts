@@ -33,7 +33,18 @@ export class UsuarioRepository implements IUsuarioRepository {
   }
 
   async findByEmail(email: string): Promise<Usuario | null> {
+    console.log(`[UsuarioRepository] Buscando usuario con email: ${email}`);
     const usuarioDoc = await this.usuarioModel.findOne({ email }).exec();
+    console.log(`[UsuarioRepository] Documento encontrado:`, usuarioDoc ? `Sí (${usuarioDoc.email})` : 'No');
+    if (usuarioDoc) {
+      console.log(`[UsuarioRepository] Datos del documento:`, {
+        id: usuarioDoc._id,
+        email: usuarioDoc.email,
+        nombre: usuarioDoc.nombre,
+        activo: usuarioDoc.activo,
+        rol: usuarioDoc.rol,
+      });
+    }
     return usuarioDoc ? UsuarioMapper.toDomain(usuarioDoc) : null;
   }
 
@@ -53,6 +64,7 @@ export class UsuarioRepository implements IUsuarioRepository {
       .exec();
   }
 }
+
 
 
 

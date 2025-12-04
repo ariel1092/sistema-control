@@ -20,7 +20,7 @@
 .reportes-header .page-title {
   font-size: 28px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin: 0;
 }
 
@@ -109,5 +109,6 @@
     flex-direction: column;
   }
 }
+
 
 

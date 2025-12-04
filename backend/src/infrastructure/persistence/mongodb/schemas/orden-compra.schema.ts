@@ -38,3 +38,6 @@ OrdenCompraSchema.index({ proveedorId: 1, fecha: -1 });
 OrdenCompraSchema.index({ estado: 1, fecha: -1 });
 
 
+
+
+

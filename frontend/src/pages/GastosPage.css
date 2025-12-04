@@ -5,24 +5,121 @@
 }
 
 .gastos-header {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .page-title {
   font-size: 28px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin: 0;
 }
 
-/* Resumen Cards */
+.alert {
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.alert-error {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.alert-success {
+  background-color: #d1fae5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.alert-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
+.btn-primary {
+  padding: 12px 24px;
+  background: #b91c1c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #991b1b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.2);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 12px 24px;
+  background: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+}
+
+.loading-spinner {
+  font-size: 18px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+/* Cards de Resumen */
 .resumen-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -35,23 +132,47 @@
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #3b82f6;
+  transition: all 0.2s;
+  border-left: 4px solid #b91c1c;
 }
 
-.resumen-card .card-label {
+.resumen-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.resumen-card:nth-child(1) {
+  border-left-color: #10b981;
+}
+
+.resumen-card:nth-child(2) {
+  border-left-color: #3b82f6;
+}
+
+.resumen-card:nth-child(3) {
+  border-left-color: #f59e0b;
+}
+
+.resumen-card:nth-child(4) {
+  border-left-color: #8b5cf6;
+}
+
+.card-label {
   font-size: 14px;
   color: #6b7280;
-  font-weight: 500;
+  font-weight: 600;
   margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.resumen-card .card-value {
+.card-value {
   font-size: 24px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #374151;
 }
 
-/* Chart Section */
+/* Sección de Gráfico */
 .chart-section {
   background: white;
   border-radius: 12px;
@@ -62,32 +183,35 @@
 
 .section-title {
   font-size: 20px;
-  font-weight: 600;
-  color: #1e3a8a;
+  font-weight: 700;
+  color: #374151;
   margin: 0 0 20px 0;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e5e7eb;
 }
 
 .chart-container {
-  margin-top: 20px;
+  width: 100%;
+  height: 300px;
 }
 
-/* Table Section */
+/* Tabla de Gastos */
 .gastos-table-section {
   background: white;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .table-container {
   overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
 }
 
 .gastos-table {
   width: 100%;
   border-collapse: collapse;
+  background: white;
 }
 
 .gastos-table thead {
@@ -95,16 +219,17 @@
 }
 
 .gastos-table th {
-  padding: 12px 16px;
+  padding: 14px 16px;
   text-align: left;
   font-weight: 600;
   color: #374151;
-  border-bottom: 2px solid #e5e7eb;
   font-size: 14px;
+  border-bottom: 2px solid #e5e7eb;
+  white-space: nowrap;
 }
 
 .gastos-table td {
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid #e5e7eb;
   color: #6b7280;
   font-size: 14px;
@@ -114,12 +239,16 @@
   background: #f9fafb;
 }
 
-.monto-cell {
-  font-weight: 600;
-  color: #1e3a8a;
+.gastos-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-/* Modal */
+.monto-cell {
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+/* Modales */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -157,7 +286,7 @@
   margin: 0;
   font-size: 24px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #374151;
 }
 
 .modal-close {
@@ -187,139 +316,237 @@
   flex: 1;
 }
 
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #374151;
-  font-size: 14px;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
 .modal-footer {
-  padding: 16px 24px;
+  padding: 20px 24px;
   border-top: 2px solid #e5e7eb;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
 }
 
-/* Buttons */
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #e5e7eb;
   color: #374151;
-  border: none;
-  padding: 10px 20px;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.form-label-required::after {
+  content: ' *';
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  background: white;
 }
 
-.btn-secondary:hover {
-  background: #d1d5db;
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.1);
 }
 
-/* Alert */
-.alert {
-  padding: 16px 20px;
-  border-radius: 8px;
-  margin-bottom: 24px;
-  font-weight: 500;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.alert-error {
-  background-color: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.alert-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: inherit;
-  cursor: pointer;
-  padding: 0;
-  margin-left: 12px;
-}
-
-/* Loading */
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-}
-
-.loading-spinner {
-  font-size: 18px;
-  color: #6b7280;
-  font-weight: 500;
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .gastos-page {
-    padding: 16px;
+    padding: 12px;
   }
 
   .gastos-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    align-items: stretch;
+  }
+
+  .btn-primary {
+    width: 100%;
   }
 
   .resumen-cards {
     grid-template-columns: 1fr;
   }
+
+  .chart-container {
+    height: 250px;
+  }
+
+  .table-container {
+    overflow-x: scroll;
+  }
+
+  .gastos-table {
+    min-width: 600px;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    margin: 12px;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
+/* Sección Retiros */
+.retiros-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 
+.section-header-retiros {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.btn-sm {
+  padding: 10px 20px;
+  font-size: 13px;
+}
+
+.retiros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.retiro-card {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s;
+}
+
+.retiro-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.retiro-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.retiro-badge {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.retiro-badge.abdul {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.retiro-badge.osvaldo {
+  background: #fce7f3;
+  color: #9f1239;
+}
+
+.retiro-monto {
+  font-size: 20px;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
+.retiro-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.retiro-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.retiro-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.retiro-value {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.retiros-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .retiros-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header-retiros {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-sm {
+    width: 100%;
+  }
+}

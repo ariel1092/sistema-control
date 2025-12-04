@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { gastosApi } from '../services/api';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { gastosApi, retirosApi } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './GastosPage.css';
 
@@ -28,12 +28,25 @@ interface ResumenGastos {
   porCategoria: Array<{ categoria: string; total: number }>;
 }
 
+interface RetiroSocio {
+  id: string;
+  fecha: string;
+  cuentaBancaria: 'ABDUL' | 'OSVALDO';
+  monto: number;
+  descripcion: string;
+  observaciones?: string;
+  createdAt: string;
+}
+
 function GastosPage() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [resumen, setResumen] = useState<ResumenGastos | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [mostrarModalRetiro, setMostrarModalRetiro] = useState(false);
+  const [retiros, setRetiros] = useState<RetiroSocio[]>([]);
   const [formData, setFormData] = useState({
     fecha: format(new Date(), 'yyyy-MM-dd'),
     categoria: 'OTROS',
@@ -43,13 +56,24 @@ function GastosPage() {
     metodoPago: 'EFECTIVO',
     observaciones: '',
   });
+  const [formRetiro, setFormRetiro] = useState({
+    fecha: format(new Date(), 'yyyy-MM-dd'),
+    hora: format(new Date(), 'HH:mm'),
+    cuentaBancaria: 'ABDUL' as 'ABDUL' | 'OSVALDO',
+    monto: '',
+    descripcion: 'Retiro semanal',
+    observaciones: '',
+  });
 
   const fechaHoy = useMemo(() => new Date(), []);
   const inicioMes = useMemo(() => startOfMonth(fechaHoy), [fechaHoy]);
   const finMes = useMemo(() => endOfMonth(fechaHoy), [fechaHoy]);
+  const inicioSemana = useMemo(() => startOfWeek(fechaHoy, { weekStartsOn: 1 }), [fechaHoy]);
+  const finSemana = useMemo(() => endOfWeek(fechaHoy, { weekStartsOn: 1 }), [fechaHoy]);
 
   useEffect(() => {
     cargarDatos();
+    cargarRetiros();
   }, []);
 
   const cargarDatos = async () => {
@@ -72,6 +96,52 @@ function GastosPage() {
       setGastos(gastosResponse.data.slice(0, 20)); // Últimos 20
     } catch (err: any) {
       setError(err.message || 'Error al cargar datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cargarRetiros = async () => {
+    try {
+      const response = await retirosApi.obtenerTodos(
+        format(inicioSemana, 'yyyy-MM-dd'),
+        format(finSemana, 'yyyy-MM-dd')
+      );
+      setRetiros(response.data || []);
+    } catch (err: any) {
+      console.error('Error al cargar retiros:', err);
+    }
+  };
+
+  const handleCrearRetiro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await retirosApi.crear({
+        fecha: formRetiro.fecha,
+        hora: formRetiro.hora,
+        cuentaBancaria: formRetiro.cuentaBancaria,
+        monto: parseFloat(formRetiro.monto),
+        descripcion: formRetiro.descripcion,
+        observaciones: formRetiro.observaciones || undefined,
+      });
+      
+      setSuccess('Retiro registrado exitosamente');
+      setMostrarModalRetiro(false);
+      setFormRetiro({
+        fecha: format(new Date(), 'yyyy-MM-dd'),
+        hora: format(new Date(), 'HH:mm'),
+        cuentaBancaria: 'ABDUL',
+        monto: '',
+        descripcion: 'Retiro semanal',
+        observaciones: '',
+      });
+      await cargarRetiros();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Error al registrar retiro');
     } finally {
       setLoading(false);
     }
@@ -142,9 +212,14 @@ function GastosPage() {
   return (
     <div className="gastos-page">
       <div className="gastos-header">
-        <h1 className="page-title">💸 Gastos Diarios</h1>
+        <div>
+          <h1 className="page-title">💸 Gastos Diarios</h1>
+          <p style={{ margin: '8px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+            Control y registro de gastos operativos del negocio
+          </p>
+        </div>
         <button className="btn-primary" onClick={() => setMostrarModal(true)}>
-          + Registrar Gasto
+          ➕ Registrar Gasto
         </button>
       </div>
 
@@ -152,6 +227,13 @@ function GastosPage() {
         <div className="alert alert-error">
           {error}
           <button onClick={() => setError(null)} className="alert-close">×</button>
+        </div>
+      )}
+
+      {success && (
+        <div className="alert alert-success">
+          {success}
+          <button onClick={() => setSuccess(null)} className="alert-close">×</button>
         </div>
       )}
 
@@ -164,24 +246,25 @@ function GastosPage() {
           {/* Cards de Resumen */}
           <div className="resumen-cards">
             <div className="resumen-card">
-              <div className="card-label">Total Hoy</div>
+              <div className="card-label">💰 Total Hoy</div>
               <div className="card-value">{formatearMonto(resumen?.totalHoy || 0)}</div>
             </div>
             <div className="resumen-card">
-              <div className="card-label">Total Mes</div>
+              <div className="card-label">📅 Total Mes</div>
               <div className="card-value">{formatearMonto(resumen?.totalMes || 0)}</div>
             </div>
             <div className="resumen-card">
-              <div className="card-label">Gasto Más Alto</div>
+              <div className="card-label">📈 Gasto Más Alto</div>
               <div className="card-value">
                 {resumen?.gastoMasAlto
-                  ? `${formatearMonto(resumen.gastoMasAlto.monto)} (${getCategoriaLabel(resumen.gastoMasAlto.categoria).toLowerCase()})`
+                  ? `${formatearMonto(resumen.gastoMasAlto.monto)}`
                   : formatearMonto(0)}
               </div>
-            </div>
-            <div className="resumen-card">
-              <div className="card-label">Snacks Hoy</div>
-              <div className="card-value">{formatearMonto(resumen?.snacksHoy || 0)}</div>
+              {resumen?.gastoMasAlto && (
+                <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+                  {getCategoriaLabel(resumen.gastoMasAlto.categoria)}
+                </div>
+              )}
             </div>
           </div>
 
@@ -202,6 +285,56 @@ function GastosPage() {
                   <Bar dataKey="total" fill="#3b82f6" name="Total" />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Sección Retiros de Socios */}
+          <div className="retiros-section">
+            <div className="section-header-retiros">
+              <h2 className="section-title">👥 Retiros de Socios (Semana Actual)</h2>
+              <button className="btn-primary btn-sm" onClick={() => setMostrarModalRetiro(true)}>
+                ➕ Registrar Retiro
+              </button>
+            </div>
+            <div className="retiros-grid">
+              {retiros.length > 0 ? (
+                retiros.map((retiro) => (
+                  <div key={retiro.id} className="retiro-card">
+                    <div className="retiro-header">
+                      <div className={`retiro-badge ${retiro.cuentaBancaria.toLowerCase()}`}>
+                        {retiro.cuentaBancaria}
+                      </div>
+                      <div className="retiro-monto">{formatearMonto(retiro.monto)}</div>
+                    </div>
+                    <div className="retiro-body">
+                      <div className="retiro-info">
+                        <span className="retiro-label">Fecha y Hora:</span>
+                        <span className="retiro-value">
+                          {format(new Date(retiro.fecha), 'dd/MM/yyyy')} - {format(new Date(retiro.createdAt), 'HH:mm')}
+                        </span>
+                      </div>
+                      <div className="retiro-info">
+                        <span className="retiro-label">Socio:</span>
+                        <span className="retiro-value">{retiro.cuentaBancaria}</span>
+                      </div>
+                      <div className="retiro-info">
+                        <span className="retiro-label">Descripción:</span>
+                        <span className="retiro-value">{retiro.descripcion}</span>
+                      </div>
+                      {retiro.observaciones && (
+                        <div className="retiro-info">
+                          <span className="retiro-label">Observaciones:</span>
+                          <span className="retiro-value">{retiro.observaciones}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="retiros-empty">
+                  <p>No hay retiros registrados esta semana</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -253,51 +386,69 @@ function GastosPage() {
               <button className="modal-close" onClick={() => setMostrarModal(false)}>×</button>
             </div>
             <form onSubmit={handleCrearGasto} className="modal-body">
-              <div className="form-group">
-                <label>Fecha *</label>
-                <input
-                  type="date"
-                  value={formData.fecha}
-                  onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-                  required
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label-required">Fecha</label>
+                  <input
+                    type="date"
+                    value={formData.fecha}
+                    onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label-required">Categoría</label>
+                  <select
+                    value={formData.categoria}
+                    onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                    required
+                  >
+                    <option value="FLETE">🚚 Flete</option>
+                    <option value="SNACK">🍿 Snack</option>
+                    <option value="MANTENIMIENTO">🔧 Mantenimiento</option>
+                    <option value="LIMPIEZA">🧹 Limpieza</option>
+                    <option value="OTROS">📦 Otros</option>
+                  </select>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Categoría *</label>
-                <select
-                  value={formData.categoria}
-                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                  required
-                >
-                  <option value="FLETE">Flete</option>
-                  <option value="SNACK">Snack</option>
-                  <option value="MANTENIMIENTO">Mantenimiento</option>
-                  <option value="LIMPIEZA">Limpieza</option>
-                  <option value="OTROS">Otros</option>
-                </select>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label-required">Monto</label>
+                  <input
+                    type="number"
+                    value={formData.monto}
+                    onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label-required">Método de Pago</label>
+                  <select
+                    value={formData.metodoPago}
+                    onChange={(e) => setFormData({ ...formData, metodoPago: e.target.value })}
+                    required
+                  >
+                    <option value="EFECTIVO">💵 Efectivo</option>
+                    <option value="CAJA">💰 Caja</option>
+                    <option value="MERCADOPAGO">💳 MercadoPago</option>
+                    <option value="TRANSFERENCIA">🏦 Transferencia</option>
+                  </select>
+                </div>
               </div>
+
               <div className="form-group">
-                <label>Monto *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.monto}
-                  onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Descripción *</label>
+                <label className="form-label-required">Descripción</label>
                 <input
                   type="text"
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  placeholder="Ej: Flete de materiales"
+                  placeholder="Ej: Flete de materiales, Compra de snacks..."
                   required
                 />
               </div>
+
               <div className="form-group">
                 <label>Empleado</label>
                 <input
@@ -307,19 +458,7 @@ function GastosPage() {
                   placeholder="Nombre del empleado (opcional)"
                 />
               </div>
-              <div className="form-group">
-                <label>Método de Pago *</label>
-                <select
-                  value={formData.metodoPago}
-                  onChange={(e) => setFormData({ ...formData, metodoPago: e.target.value })}
-                  required
-                >
-                  <option value="EFECTIVO">Efectivo</option>
-                  <option value="CAJA">Caja</option>
-                  <option value="MERCADOPAGO">MercadoPago</option>
-                  <option value="TRANSFERENCIA">Transferencia</option>
-                </select>
-              </div>
+
               <div className="form-group">
                 <label>Observaciones</label>
                 <textarea
@@ -341,9 +480,97 @@ function GastosPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Registrar Retiro */}
+      {mostrarModalRetiro && (
+        <div className="modal-overlay" onClick={() => setMostrarModalRetiro(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>👥 Registrar Retiro de Socio</h2>
+              <button className="modal-close" onClick={() => setMostrarModalRetiro(false)}>×</button>
+            </div>
+            <form onSubmit={handleCrearRetiro} className="modal-body">
+              <div className="form-group">
+                <label className="form-label-required">Socio</label>
+                <select
+                  value={formRetiro.cuentaBancaria}
+                  onChange={(e) => setFormRetiro({ ...formRetiro, cuentaBancaria: e.target.value as 'ABDUL' | 'OSVALDO' })}
+                  required
+                >
+                  <option value="ABDUL">👤 Abdul</option>
+                  <option value="OSVALDO">👤 Osvaldo</option>
+                </select>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label-required">Fecha</label>
+                  <input
+                    type="date"
+                    value={formRetiro.fecha}
+                    onChange={(e) => setFormRetiro({ ...formRetiro, fecha: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label-required">Hora</label>
+                  <input
+                    type="time"
+                    value={formRetiro.hora}
+                    onChange={(e) => setFormRetiro({ ...formRetiro, hora: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label-required">Monto</label>
+                  <input
+                    type="number"
+                    value={formRetiro.monto}
+                    onChange={(e) => setFormRetiro({ ...formRetiro, monto: e.target.value })}
+                    placeholder="0"
+                    required
+                  />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label-required">Descripción</label>
+                <input
+                  type="text"
+                  value={formRetiro.descripcion}
+                  onChange={(e) => setFormRetiro({ ...formRetiro, descripcion: e.target.value })}
+                  placeholder="Ej: Retiro semanal"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Observaciones</label>
+                <textarea
+                  value={formRetiro.observaciones}
+                  onChange={(e) => setFormRetiro({ ...formRetiro, observaciones: e.target.value })}
+                  placeholder="Observaciones adicionales (opcional)"
+                  rows={3}
+                />
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setMostrarModalRetiro(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? 'Registrando...' : 'Registrar Retiro'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default GastosPage;
+
 

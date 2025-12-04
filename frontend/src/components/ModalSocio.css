@@ -31,7 +31,7 @@
 .resumen-monto {
   font-size: 20px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: #b91c1c;
 }
 
 .seccion-retiro {
@@ -129,14 +129,14 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #b91c1c;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .seccion-transferencias h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin-bottom: 16px;
 }
 
@@ -170,7 +170,7 @@
 
 .transferencia-monto {
   font-weight: 700;
-  color: #1e3a8a;
+  color: #b91c1c;
   font-size: 18px;
 }
 
@@ -203,7 +203,7 @@
 .seccion-retiros h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #1e3a8a;
+  color: #b91c1c;
   margin-bottom: 16px;
 }
 

@@ -43,3 +43,9 @@ import { EmpleadoMongo, EmpleadoSchema } from '../../infrastructure/persistence/
 export class EmpleadosModule {}
 
 
+
+
+
+
+
+
