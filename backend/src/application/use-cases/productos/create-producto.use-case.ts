@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { IProductoRepository } from '../../ports/producto.repository.interface';
 import { Producto } from '../../../domain/entities/producto.entity';
 import { CreateProductoDto } from '../../dtos/productos/create-producto.dto';
@@ -9,6 +11,7 @@ export class CreateProductoUseCase {
   constructor(
     @Inject('IProductoRepository')
     private readonly productoRepository: IProductoRepository,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async execute(dto: CreateProductoDto): Promise<Producto> {
@@ -42,7 +45,13 @@ export class CreateProductoUseCase {
     });
 
     // Guardar
-    return await this.productoRepository.save(producto);
+    const productoGuardado = await this.productoRepository.save(producto);
+
+    // Invalidar caché de productos
+    await this.cacheManager.del('productos:all:true');
+    await this.cacheManager.del('productos:all:all');
+
+    return productoGuardado;
   }
 }
 

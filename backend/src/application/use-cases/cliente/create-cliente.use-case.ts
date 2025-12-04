@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { IClienteRepository } from '../../ports/cliente.repository.interface';
 import { Cliente } from '../../../domain/entities/cliente.entity';
 import { CreateClienteDto } from '../../dtos/cliente/create-cliente.dto';
@@ -9,6 +11,7 @@ export class CreateClienteUseCase {
   constructor(
     @Inject('IClienteRepository')
     private readonly clienteRepository: IClienteRepository,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async execute(dto: CreateClienteDto): Promise<ClienteResponseDto> {
@@ -33,6 +36,9 @@ export class CreateClienteUseCase {
     });
 
     const clienteGuardado = await this.clienteRepository.save(cliente);
+
+    // Invalidar caché de clientes
+    await this.cacheManager.del('clientes:all');
 
     return this.mapToResponse(clienteGuardado);
   }

@@ -1,4 +1,6 @@
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { IProductoRepository } from '../../ports/producto.repository.interface';
 import { IMovimientoStockRepository } from '../../ports/movimiento-stock.repository.interface';
 
@@ -9,6 +11,7 @@ export class DeleteProductoUseCase {
     private readonly productoRepository: IProductoRepository,
     @Inject('IMovimientoStockRepository')
     private readonly movimientoStockRepository: IMovimientoStockRepository,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async execute(id: string): Promise<void> {
@@ -27,6 +30,10 @@ export class DeleteProductoUseCase {
 
     // Soft delete: marcar como inactivo
     await this.productoRepository.delete(id);
+
+    // Invalidar caché de productos
+    await this.cacheManager.del('productos:all:true');
+    await this.cacheManager.del('productos:all:all');
   }
 }
 

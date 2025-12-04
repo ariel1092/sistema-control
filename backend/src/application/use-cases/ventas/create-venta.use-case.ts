@@ -1,4 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 import { Venta } from '../../../domain/entities/venta.entity';
 import { DetalleVenta } from '../../../domain/entities/detalle-venta.entity';
 import { MetodoPago } from '../../../domain/value-objects/metodo-pago.vo';
@@ -19,6 +21,7 @@ export class CreateVentaUseCase {
     @Inject('IProductoRepository')
     private readonly productoRepository: IProductoRepository,
     private readonly registrarVentaStockUseCase: RegistrarVentaStockUseCase,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   private generarNumeroVentaUnico(tipoComprobante?: TipoComprobante): string {
@@ -248,7 +251,26 @@ export class CreateVentaUseCase {
     //   await this.clienteRepository.actualizarSaldo(dto.clienteDNI, ventaGuardada.calcularTotal());
     // }
 
-    // 8. TODO: Emitir evento de dominio (VentaCreada)
+    // 8. Invalidar caché de ventas del día actual (solo si es venta completada)
+    if (!esPresupuesto) {
+      const hoy = new Date();
+      const año = hoy.getUTCFullYear();
+      const mes = hoy.getUTCMonth() + 1;
+      const dia = hoy.getUTCDate();
+      const fechaKey = `${año}-${mes}-${dia}`;
+      
+      // Invalidar todas las variantes de caché de ventas de hoy
+      const cacheKeys = [
+        `ventas:${fechaKey}:all`,
+        `ventas:${fechaKey}:EFECTIVO`,
+        `ventas:${fechaKey}:TARJETA`,
+        `ventas:${fechaKey}:TRANSFERENCIA`,
+      ];
+      
+      await Promise.all(cacheKeys.map(key => this.cacheManager.del(key)));
+    }
+
+    // 9. TODO: Emitir evento de dominio (VentaCreada)
     // await this.eventBus.publish(new VentaCreadaEvent(ventaGuardada));
 
     return ventaGuardada;
