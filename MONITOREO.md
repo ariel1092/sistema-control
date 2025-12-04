@@ -41,6 +41,35 @@ El endpoint `/api/v1/health` ahora verifica:
 
 **Nota**: Esto también mantiene despierto tu servidor de Render (ping cada 5 min)
 
+### 4. Keep-Alive para Render (Evitar que se "duerma")
+
+Render suspende servicios gratuitos después de ~15 minutos sin tráfico. Para mantenerlo activo:
+
+#### Opción A: UptimeRobot (Recomendado) ⭐
+1. Ve a [UptimeRobot](https://uptimerobot.com)
+2. Crea cuenta gratuita
+3. Click en "Add New Monitor"
+4. Configura:
+   - **Monitor Type:** HTTP(s)
+   - **Friendly Name:** Sistema Control Keep-Alive
+   - **URL:** `https://sistema-control.onrender.com/api/v1/health`
+   - **Monitoring Interval:** 5 minutes
+5. Click "Create Monitor"
+
+#### Opción B: GitHub Actions (Gratis)
+Ya está configurado en `.github/workflows/keep-alive.yml`
+- Se ejecuta automáticamente cada 10 minutos
+- No requiere configuración adicional
+- Usa minutos gratuitos de GitHub Actions (2000/mes)
+
+#### Opción C: Script Local
+```bash
+cd backend
+BACKEND_URL=https://sistema-control.onrender.com npm run keep-alive
+```
+
+Ver documentación completa en `backend/KEEP_ALIVE_RENDER.md`
+
 ### 3. Sentry - Monitoreo de Errores
 
 #### Backend

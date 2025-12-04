@@ -1,0 +1,27 @@
+name: Keep Render Alive
+
+on:
+  schedule:
+    # Ejecutar cada 10 minutos
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Permite ejecución manual desde GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend
+        run: |
+          echo "🔄 Haciendo ping a Render..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://sistema-control.onrender.com/api/v1/health)
+          if [ "$response" = "200" ]; then
+            echo "✅ Backend activo (Status: $response)"
+          else
+            echo "⚠️  Backend respondió con status: $response"
+            exit 1
+          fi
+          
+      - name: Show Response
+        run: |
+          curl -s https://sistema-control.onrender.com/api/v1/health | jq '.' || echo "Respuesta recibida"
+

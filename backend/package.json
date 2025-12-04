@@ -30,6 +30,7 @@
     "clean:db": "ts-node scripts/clean-database.ts",
     "clear:db": "ts-node scripts/clear-database.ts",
     "clear:db:prod": "ts-node scripts/clear-database-prod.ts",
+    "keep-alive": "ts-node scripts/keep-alive.ts",
     "create:indexes": "ts-node scripts/create-indexes.ts",
     "backup:mongodb": "ts-node scripts/backup-mongodb.ts",
     "backup:mongodb:compress": "ts-node scripts/backup-mongodb.ts --compress"
