@@ -25,3 +25,4 @@ jobs:
         run: |
           curl -s https://sistema-control.onrender.com/api/v1/health | jq '.' || echo "Respuesta recibida"
 
+

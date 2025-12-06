@@ -12,8 +12,6 @@ interface Proveedor {
   telefono?: string;
   email?: string;
   categoria: string;
-  productosProvee: string[];
-  condicionesCompra: string;
   formaPagoHabitual: string;
   vendedorAsignado?: string;
   activo: boolean;
@@ -49,9 +47,7 @@ const CATEGORIAS = [
 const FORMAS_PAGO = [
   'EFECTIVO',
   'TRANSFERENCIA',
-  'MERCADOPAGO',
   'CUENTA_CORRIENTE',
-  'CHEQUE',
 ];
 
 interface CuentaCorriente {
@@ -100,7 +96,9 @@ function ProveedoresPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showModalEditar, setShowModalEditar] = useState(false);
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState<Proveedor | null>(null);
+  const [proveedorEditando, setProveedorEditando] = useState<Proveedor | null>(null);
   const [cuentaCorriente, setCuentaCorriente] = useState<CuentaCorriente | null>(null);
   const [loadingCC, setLoadingCC] = useState(false);
   const [showModalPago, setShowModalPago] = useState(false);
@@ -131,14 +129,13 @@ function ProveedoresPage() {
     telefono: '',
     email: '',
     categoria: 'OTROS',
-    productosProvee: [] as string[],
-    condicionesCompra: '',
     formaPagoHabitual: 'CUENTA_CORRIENTE',
     vendedorAsignado: '',
     activo: true,
     observaciones: '',
+    plazoCuentaCorriente: '',
+    descuento: '0',
   });
-  const [nuevoProducto, setNuevoProducto] = useState('');
 
   useEffect(() => {
     cargarProveedores();
@@ -162,7 +159,13 @@ function ProveedoresPage() {
     try {
       setLoading(true);
       setError(null);
-      await proveedoresApi.crear(formData);
+      // Convertir descuento a número si existe
+      const dataToSend = {
+        ...formData,
+        descuento: formData.descuento ? parseFloat(formData.descuento) : undefined,
+        plazoCuentaCorriente: formData.plazoCuentaCorriente || undefined,
+      };
+      await proveedoresApi.crear(dataToSend);
       setSuccess('Proveedor creado exitosamente');
       setShowModal(false);
       resetForm();
@@ -184,14 +187,13 @@ function ProveedoresPage() {
       telefono: '',
       email: '',
       categoria: 'OTROS',
-      productosProvee: [],
-      condicionesCompra: '',
       formaPagoHabitual: 'CUENTA_CORRIENTE',
       vendedorAsignado: '',
       activo: true,
       observaciones: '',
+      plazoCuentaCorriente: '',
+      descuento: '0',
     });
-    setNuevoProducto('');
   };
 
   const handleCloseModal = () => {
@@ -200,21 +202,57 @@ function ProveedoresPage() {
     setError(null);
   };
 
-  const agregarProducto = () => {
-    if (nuevoProducto.trim()) {
-      setFormData({
-        ...formData,
-        productosProvee: [...formData.productosProvee, nuevoProducto.trim()],
-      });
-      setNuevoProducto('');
-    }
+  const handleEditarProveedor = (proveedor: Proveedor) => {
+    setProveedorEditando(proveedor);
+    setFormData({
+      nombre: proveedor.nombre,
+      razonSocial: proveedor.razonSocial || '',
+      cuit: proveedor.cuit || '',
+      domicilio: proveedor.domicilio || '',
+      telefono: proveedor.telefono || '',
+      email: proveedor.email || '',
+      categoria: proveedor.categoria,
+      formaPagoHabitual: proveedor.formaPagoHabitual,
+      vendedorAsignado: proveedor.vendedorAsignado || '',
+      activo: proveedor.activo,
+      observaciones: proveedor.observaciones || '',
+      plazoCuentaCorriente: proveedor.plazoCuentaCorriente?.toString() || '',
+      descuento: proveedor.descuento?.toString() || '0',
+    });
+    setShowModalEditar(true);
   };
 
-  const eliminarProducto = (index: number) => {
-    setFormData({
-      ...formData,
-      productosProvee: formData.productosProvee.filter((_, i) => i !== index),
-    });
+  const handleCerrarModalEditar = () => {
+    setShowModalEditar(false);
+    setProveedorEditando(null);
+    resetForm();
+    setError(null);
+  };
+
+  const handleActualizarProveedor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proveedorEditando) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const dataToSend = {
+        ...formData,
+        descuento: formData.descuento ? parseFloat(formData.descuento) : undefined,
+        plazoCuentaCorriente: formData.plazoCuentaCorriente ? parseFloat(formData.plazoCuentaCorriente) : undefined,
+      };
+      await proveedoresApi.actualizar(proveedorEditando.id, dataToSend);
+      setSuccess('Proveedor actualizado exitosamente');
+      setShowModalEditar(false);
+      setProveedorEditando(null);
+      resetForm();
+      cargarProveedores();
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err: any) {
+      setError(err.message || 'Error al actualizar proveedor');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatearCategoria = (categoria: string) => {
@@ -271,8 +309,8 @@ function ProveedoresPage() {
       const descuento = parseFloat(formDataFactura.descuento) || 0;
       const descuentoMonto = (importeBruto * descuento) / 100;
       const subtotal = importeBruto - descuentoMonto;
-      const iva = subtotal * 0.21;
-      const total = subtotal + iva;
+      // El IVA se calcula por item en el backend, no se agrega globalmente aquí
+      const total = subtotal;
 
       const facturaData = {
         numero: formDataFactura.numero,
@@ -289,7 +327,7 @@ function ProveedoresPage() {
               cantidad: 1,
               precioUnitario: importeBruto,
               descuento: descuento,
-              iva: 21,
+              iva: 0, // IVA opcional, se puede configurar por item si es necesario
             }],
       };
 
@@ -321,9 +359,9 @@ function ProveedoresPage() {
     setProveedorParaFactura(null);
   };
 
-  const calcularFechaVencimiento = (dias: string) => {
+  const calcularFechaVencimiento = (dias: string, fechaBase?: string) => {
     if (!dias || isNaN(parseInt(dias))) return '';
-    const fecha = new Date(formDataFactura.fecha);
+    const fecha = fechaBase ? new Date(fechaBase) : new Date(formDataFactura.fecha || format(new Date(), 'yyyy-MM-dd'));
     fecha.setDate(fecha.getDate() + parseInt(dias));
     return format(fecha, 'yyyy-MM-dd');
   };
@@ -423,15 +461,27 @@ function ProveedoresPage() {
           {proveedores.map((proveedor) => (
             <div
               key={proveedor.id}
-              className={`proveedor-card ${!proveedor.activo ? 'inactivo' : ''} clickeable`}
-              onClick={() => handleClickProveedor(proveedor)}
-              style={{ cursor: 'pointer' }}
+              className={`proveedor-card ${!proveedor.activo ? 'inactivo' : ''}`}
             >
               <div className="proveedor-header">
-                <h3>{proveedor.nombre}</h3>
-                <span className={`badge ${proveedor.activo ? 'activo' : 'inactivo'}`}>
-                  {proveedor.activo ? 'ACTIVO' : 'INACTIVO'}
-                </span>
+                <h3 onClick={() => handleClickProveedor(proveedor)} style={{ cursor: 'pointer', flex: 1 }}>
+                  {proveedor.nombre}
+                </h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    className="btn-edit-small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditarProveedor(proveedor);
+                    }}
+                    title="Editar proveedor"
+                  >
+                    ✏️
+                  </button>
+                  <span className={`badge ${proveedor.activo ? 'activo' : 'inactivo'}`}>
+                    {proveedor.activo ? 'ACTIVO' : 'INACTIVO'}
+                  </span>
+                </div>
               </div>
               <div className="proveedor-body">
                 <div className="resumen-financiero">
@@ -559,16 +609,6 @@ function ProveedoresPage() {
               </div>
 
               <div className="form-group">
-                <label>Condiciones de Compra</label>
-                <input
-                  type="text"
-                  value={formData.condicionesCompra}
-                  onChange={(e) => setFormData({ ...formData, condicionesCompra: e.target.value })}
-                  placeholder="Ej: 30/60 días"
-                />
-              </div>
-
-              <div className="form-group">
                 <label>Vendedor Asignado</label>
                 <input
                   type="text"
@@ -577,41 +617,33 @@ function ProveedoresPage() {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Productos que Provee</label>
-                <div className="productos-input">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Días para Pagar</label>
                   <input
-                    type="text"
-                    value={nuevoProducto}
-                    onChange={(e) => setNuevoProducto(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        agregarProducto();
-                      }
-                    }}
-                    placeholder="Agregar producto y presionar Enter"
+                    type="number"
+                    value={formData.plazoCuentaCorriente}
+                    onChange={(e) => setFormData({ ...formData, plazoCuentaCorriente: e.target.value })}
+                    placeholder="Ej: 30"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   />
-                  <button type="button" onClick={agregarProducto} className="btn-secondary">
-                    ➕
-                  </button>
                 </div>
-                {formData.productosProvee.length > 0 && (
-                  <ul className="productos-lista">
-                    {formData.productosProvee.map((prod, idx) => (
-                      <li key={idx}>
-                        {prod}
-                        <button
-                          type="button"
-                          onClick={() => eliminarProducto(idx)}
-                          className="btn-remove"
-                        >
-                          ×
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+
+                <div className="form-group">
+                  <label>Descuento (%)</label>
+                  <input
+                    type="number"
+                    value={formData.descuento}
+                    onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                    step="1"
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  />
+                </div>
               </div>
 
               <div className="form-group">
@@ -629,6 +661,175 @@ function ProveedoresPage() {
                 </button>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? 'Guardando...' : 'Guardar Proveedor'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showModalEditar && (
+        <div className="modal-overlay" onClick={handleCerrarModalEditar}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Editar Proveedor</h2>
+              <button className="modal-close" onClick={handleCerrarModalEditar}>×</button>
+            </div>
+            <form onSubmit={handleActualizarProveedor} className="modal-body">
+              <div className="form-group">
+                <label>Nombre *</label>
+                <input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Razón Social</label>
+                <input
+                  type="text"
+                  value={formData.razonSocial}
+                  onChange={(e) => setFormData({ ...formData, razonSocial: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>CUIT</label>
+                <input
+                  type="text"
+                  value={formData.cuit}
+                  onChange={(e) => setFormData({ ...formData, cuit: e.target.value })}
+                  placeholder="XX-XXXXXXXX-X"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Domicilio</label>
+                <input
+                  type="text"
+                  value={formData.domicilio}
+                  onChange={(e) => setFormData({ ...formData, domicilio: e.target.value })}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Teléfono</label>
+                  <input
+                    type="text"
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Categoría *</label>
+                  <select
+                    value={formData.categoria}
+                    onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                    required
+                  >
+                    {CATEGORIAS.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {formatearCategoria(cat)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Forma de Pago Habitual *</label>
+                  <select
+                    value={formData.formaPagoHabitual}
+                    onChange={(e) => setFormData({ ...formData, formaPagoHabitual: e.target.value })}
+                    required
+                  >
+                    {FORMAS_PAGO.map((fp) => (
+                      <option key={fp} value={fp}>
+                        {formatearCategoria(fp)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Vendedor Asignado</label>
+                <input
+                  type="text"
+                  value={formData.vendedorAsignado}
+                  onChange={(e) => setFormData({ ...formData, vendedorAsignado: e.target.value })}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Días para Pagar</label>
+                  <input
+                    type="number"
+                    value={formData.plazoCuentaCorriente}
+                    onChange={(e) => setFormData({ ...formData, plazoCuentaCorriente: e.target.value })}
+                    placeholder="Ej: 30"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Descuento (%)</label>
+                  <input
+                    type="number"
+                    value={formData.descuento}
+                    onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                    step="1"
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Observaciones</label>
+                <textarea
+                  value={formData.observaciones}
+                  onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formData.activo}
+                    onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
+                  />
+                  {' '}Activo
+                </label>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={handleCerrarModalEditar}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? 'Actualizando...' : 'Actualizar Proveedor'}
                 </button>
               </div>
             </form>
@@ -890,9 +1091,16 @@ function ProveedoresPage() {
                       const proveedor = proveedores.find(p => p.id === e.target.value);
                       setProveedorParaFactura(proveedor || null);
                       if (proveedor) {
+                        const diasParaPagar = proveedor.plazoCuentaCorriente?.toString() || '';
+                        const descuento = proveedor.descuento?.toString() || '0';
+                        const fechaBase = formDataFactura.fecha || format(new Date(), 'yyyy-MM-dd');
                         setFormDataFactura({
                           ...formDataFactura,
-                          descuento: proveedor.descuento?.toString() || '0',
+                          descuento: descuento,
+                          diasParaPagar: diasParaPagar,
+                          fechaVencimiento: diasParaPagar 
+                            ? calcularFechaVencimiento(diasParaPagar, fechaBase)
+                            : '',
                         });
                       }
                     }}
@@ -950,8 +1158,11 @@ function ProveedoresPage() {
                   <input
                     type="number"
                     value={formDataFactura.diasParaPagar}
-                    onChange={(e) => handleDiasParaPagarChange(e.target.value)}
+                    readOnly
                     placeholder="Ej: 30"
+                    min="0"
+                    step="1"
+                    className="input-readonly"
                   />
                 </div>
 
@@ -975,6 +1186,9 @@ function ProveedoresPage() {
                     onChange={(e) => setFormDataFactura({ ...formDataFactura, importeBruto: e.target.value })}
                     required
                     placeholder="0"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   />
                 </div>
 
@@ -983,8 +1197,12 @@ function ProveedoresPage() {
                   <input
                     type="number"
                     value={formDataFactura.descuento}
-                    onChange={(e) => setFormDataFactura({ ...formDataFactura, descuento: e.target.value })}
+                    readOnly
                     placeholder="0"
+                    min="0"
+                    max="100"
+                    step="1"
+                    className="input-readonly"
                   />
                 </div>
               </div>
@@ -1006,8 +1224,7 @@ function ProveedoresPage() {
                     <span className="resumen-value total">
                       {formatearMonto(
                         (parseFloat(formDataFactura.importeBruto) || 0) * 
-                        (1 - (parseFloat(formDataFactura.descuento) || 0) / 100) * 
-                        1.21
+                        (1 - (parseFloat(formDataFactura.descuento) || 0) / 100)
                       )}
                     </span>
                   </div>
@@ -1318,6 +1535,9 @@ function ProveedoresPage() {
                         setMontoPagoFactura(e.target.value);
                       }}
                       placeholder="0"
+                      min="0"
+                      step="1"
+                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
                       required
                       className="input-monto"
                       autoFocus

@@ -24,6 +24,7 @@ function VentasPage() {
   const [transferenciaAbdul, setTransferenciaAbdul] = useState(''); // Reutilizamos este estado para transferencias
   const [creditoDebito, setCreditoDebito] = useState('');
   const [recargoDebito, setRecargoDebito] = useState('');
+  const [descuentoCredito, setDescuentoCredito] = useState('');
   const [tipoCreditoDebito, setTipoCreditoDebito] = useState<'CREDITO' | 'DEBITO'>('DEBITO');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +121,7 @@ function VentasPage() {
   }, []);
 
 
-  const guardarVenta = async (tipo: string, monto: number, cuentaBancaria?: string, recargo?: number) => {
+  const guardarVenta = async (tipo: string, monto: number, cuentaBancaria?: string, recargo?: number, descuento?: number) => {
     if (monto <= 0) {
       setError('El monto debe ser mayor a 0');
       return;
@@ -130,17 +131,17 @@ function VentasPage() {
       setLoading(true);
       setError(null);
 
-      // Calcular monto con recargo si aplica
+      // Calcular monto con descuento
       let montoFinal = monto;
-      if (recargo && recargo > 0) {
-        montoFinal = monto * (1 + recargo / 100);
+      if (descuento && descuento > 0) {
+        montoFinal = monto * (1 - descuento / 100);
       }
 
       // Crear venta simple sin productos
       const metodoPagoData: any = {
         tipo: tipo,
         monto: montoFinal,
-        recargo: recargo || 0,
+        recargo: 0,
       };
 
       // Agregar cuenta bancaria solo si es transferencia
@@ -155,13 +156,18 @@ function VentasPage() {
         return;
       }
 
-      const ventaData = {
+      const ventaData: any = {
         vendedorId: user.id, // ID del usuario autenticado como vendedor
         items: [], // Sin productos, solo registro de pago
         metodosPago: [metodoPagoData],
         tipoComprobante: 'REMITO',
-        observaciones: `Venta registrada - ${tipo}${cuentaBancaria ? ` (${cuentaBancaria})` : ''}${recargo && recargo > 0 ? ` - Recargo: ${recargo}%` : ''}`,
+        observaciones: `Venta registrada - ${tipo}${cuentaBancaria ? ` (${cuentaBancaria})` : ''}${descuento && descuento > 0 ? ` - Descuento: ${descuento}%` : ''}`,
       };
+
+      // Agregar descuento general si se especifica
+      if (descuento && descuento > 0) {
+        ventaData.descuentoGeneral = descuento;
+      }
 
       await ventasApi.crear(ventaData);
       setSuccess(`Venta de $${montoFinal.toFixed(2)} registrada exitosamente`);
@@ -242,10 +248,20 @@ function VentasPage() {
       setError('Ingrese un monto válido');
       return;
     }
-    const recargo = tipoCreditoDebito === 'DEBITO' && recargoDebito ? parseFloat(recargoDebito) : 0;
-    await guardarVenta(tipoCreditoDebito, monto, undefined, recargo);
+    
+    // Obtener descuento si se especifica (disponible para crédito y débito)
+    let descuento = 0;
+    if (descuentoCredito && descuentoCredito.trim() !== '') {
+      descuento = parseFloat(descuentoCredito);
+      if (isNaN(descuento) || descuento < 0 || descuento > 100) {
+        setError('El descuento debe ser un número entre 0 y 100');
+        return;
+      }
+    }
+    
+    await guardarVenta(tipoCreditoDebito, monto, undefined, 0, descuento);
     setCreditoDebito('');
-    setRecargoDebito('');
+    setDescuentoCredito('');
   };
 
   const formatearMonto = (monto: number) => {
@@ -304,13 +320,16 @@ function VentasPage() {
           </div>
           <div className="section-content">
             <div className="input-group">
-              <label>Monto</label>
+              <label className="input-label">Monto</label>
               <div className="input-with-button">
                 <input
                   type="number"
                   value={efectivo}
                   onChange={(e) => setEfectivo(e.target.value)}
-                  placeholder="0"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleEfectivo();
@@ -384,37 +403,52 @@ function VentasPage() {
           </div>
           <div className="section-content">
             <div className="input-group">
-              <label>Cuenta Bancaria</label>
-              <div className="radio-group">
-                <label>
+              <label className="input-label">Cuenta Bancaria</label>
+              <div className="radio-card-group">
+                <label 
+                  className={`radio-card ${cuentaBancariaSeleccionada === 'ABDUL' ? 'radio-card-selected' : ''}`}
+                >
                   <input
                     type="radio"
                     value="ABDUL"
                     checked={cuentaBancariaSeleccionada === 'ABDUL'}
                     onChange={(e) => setCuentaBancariaSeleccionada(e.target.value as 'ABDUL' | 'OSVALDO')}
+                    className="radio-card-input"
                   />
-                  Abdul
+                  <div className="radio-card-content">
+                    <span className="radio-card-icon">🏦</span>
+                    <span className="radio-card-label">Cuenta A</span>
+                  </div>
                 </label>
-                <label>
+                <label 
+                  className={`radio-card ${cuentaBancariaSeleccionada === 'OSVALDO' ? 'radio-card-selected' : ''}`}
+                >
                   <input
                     type="radio"
                     value="OSVALDO"
                     checked={cuentaBancariaSeleccionada === 'OSVALDO'}
                     onChange={(e) => setCuentaBancariaSeleccionada(e.target.value as 'ABDUL' | 'OSVALDO')}
+                    className="radio-card-input"
                   />
-                  Osvaldo
+                  <div className="radio-card-content">
+                    <span className="radio-card-icon">🏦</span>
+                    <span className="radio-card-label">Cuenta O</span>
+                  </div>
                 </label>
               </div>
             </div>
             
             <div className="input-group">
-              <label>Monto</label>
+              <label className="input-label">Monto</label>
               <div className="input-with-button">
                 <input
                   type="number"
                   value={transferenciaAbdul}
                   onChange={(e) => setTransferenciaAbdul(e.target.value)}
-                  placeholder="0"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleTransferencia();
@@ -482,36 +516,51 @@ function VentasPage() {
           </div>
           <div className="section-content">
             <div className="input-group">
-              <label>Tipo</label>
-              <div className="radio-group">
-                <label>
+              <label className="input-label">Tipo</label>
+              <div className="radio-card-group">
+                <label 
+                  className={`radio-card ${tipoCreditoDebito === 'DEBITO' ? 'radio-card-selected' : ''}`}
+                >
                   <input
                     type="radio"
                     value="DEBITO"
                     checked={tipoCreditoDebito === 'DEBITO'}
                     onChange={(e) => setTipoCreditoDebito(e.target.value as 'DEBITO' | 'CREDITO')}
+                    className="radio-card-input"
                   />
-                  Débito
+                  <div className="radio-card-content">
+                    <span className="radio-card-icon">💳</span>
+                    <span className="radio-card-label">Débito</span>
+                  </div>
                 </label>
-                <label>
+                <label 
+                  className={`radio-card ${tipoCreditoDebito === 'CREDITO' ? 'radio-card-selected' : ''}`}
+                >
                   <input
                     type="radio"
                     value="CREDITO"
                     checked={tipoCreditoDebito === 'CREDITO'}
                     onChange={(e) => setTipoCreditoDebito(e.target.value as 'DEBITO' | 'CREDITO')}
+                    className="radio-card-input"
                   />
-                  Crédito
+                  <div className="radio-card-content">
+                    <span className="radio-card-icon">💳</span>
+                    <span className="radio-card-label">Crédito</span>
+                  </div>
                 </label>
               </div>
             </div>
 
             <div className="input-group">
-              <label>Monto</label>
+              <label className="input-label">Monto</label>
               <input
                 type="number"
                 value={creditoDebito}
                 onChange={(e) => setCreditoDebito(e.target.value)}
-                placeholder="0"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     handleCreditoDebito();
@@ -520,17 +569,25 @@ function VentasPage() {
               />
             </div>
 
-            {tipoCreditoDebito === 'DEBITO' && (
-              <div className="input-group">
-                <label>Recargo (%) - Opcional</label>
-                <input
-                  type="number"
-                  value={recargoDebito}
-                  onChange={(e) => setRecargoDebito(e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-            )}
+            <div className="input-group">
+              <label className="input-label">
+                Descuento (%) 
+                <span className="label-optional"> - Opcional</span>
+              </label>
+              <input
+                type="number"
+                value={descuentoCredito}
+                onChange={(e) => setDescuentoCredito(e.target.value)}
+                placeholder="0"
+                min="0"
+                max="100"
+                step="1"
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+              />
+              <span className="input-hint">
+                Descuento que se aplica al monto
+              </span>
+            </div>
 
             <button
               className="btn-primary btn-full"

@@ -46,6 +46,7 @@
     "@nestjs/platform-express": "^10.3.0",
     "@nestjs/swagger": "^7.1.16",
     "@sentry/node": "^7.120.4",
+    "axios": "^1.6.2",
     "bcrypt": "^5.1.1",
     "cache-manager": "^7.2.5",
     "class-transformer": "^0.5.1",

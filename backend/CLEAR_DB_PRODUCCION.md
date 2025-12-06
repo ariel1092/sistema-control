@@ -66,3 +66,4 @@ Después de borrar la base de datos, necesitarás:
 - ✅ Recrear productos (si tienes un script de seed)
 - ✅ Verificar que el sistema funcione correctamente
 
+

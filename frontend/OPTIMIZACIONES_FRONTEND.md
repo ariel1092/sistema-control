@@ -136,3 +136,4 @@ build: {
 
 **¿Querés que continúe con extraer componentes de VentasPage.tsx o prefieres probar primero?**
 
+

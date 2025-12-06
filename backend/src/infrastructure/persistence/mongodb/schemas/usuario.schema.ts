@@ -37,3 +37,4 @@ export const UsuarioSchema = SchemaFactory.createForClass(UsuarioMongo);
 
 
 
+

@@ -54,3 +54,4 @@ CierreCajaSchema.index({ fecha: -1, estado: 1 });
 
 
 
+

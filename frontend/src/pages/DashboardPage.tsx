@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfWeek, startOfYear } from 'date-fns';
-import { cajaApi } from '../services/api';
+import { cajaApi, proveedoresApi } from '../services/api';
 import {
   LineChart,
   Line,
@@ -28,6 +28,7 @@ function DashboardPage() {
   const [resumenAnual, setResumenAnual] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalDeudaProveedores, setTotalDeudaProveedores] = useState<number>(0);
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -125,6 +126,25 @@ function DashboardPage() {
     }
   }, [periodo, fecha]);
 
+  // Función para cargar el total de deuda de proveedores
+  const cargarDeudaProveedores = useCallback(async () => {
+    try {
+      const response = await proveedoresApi.obtenerTodos();
+      const proveedores = response.data || [];
+      
+      // Calcular el total de deuda sumando el saldo pendiente de todos los proveedores
+      const totalDeuda = proveedores.reduce((sum: number, proveedor: any) => {
+        const saldoPendiente = proveedor.saldoPendiente?.saldoTotal || 0;
+        return sum + saldoPendiente;
+      }, 0);
+      
+      setTotalDeudaProveedores(totalDeuda);
+    } catch (err: any) {
+      console.error('Error al cargar deuda de proveedores:', err);
+      setTotalDeudaProveedores(0);
+    }
+  }, []);
+
   // OPTIMIZACIÓN: Cargar datos con un pequeño delay para no bloquear el render inicial
   useEffect(() => {
     // Si hay datos en caché, mostrarlos inmediatamente
@@ -144,7 +164,10 @@ function DashboardPage() {
       }, 100);
       return () => clearTimeout(timeoutId);
     }
-  }, [cargarDatos, periodo, fecha]);
+    
+    // Cargar deuda de proveedores
+    cargarDeudaProveedores();
+  }, [cargarDatos, periodo, fecha, cargarDeudaProveedores]);
 
   // Usar ref para mantener la función cargarDatos actualizada sin recrear listeners
   const cargarDatosRef = useRef(cargarDatos);
@@ -220,7 +243,7 @@ function DashboardPage() {
       {loading && !resumenDiario && periodo === 'diario' && (
         <div className="dashboard-content">
           <div className="summary-cards">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="summary-card skeleton">
                 <div className="card-icon skeleton-icon"></div>
                 <div className="card-content">
@@ -264,6 +287,13 @@ function DashboardPage() {
               <div className="card-content">
                 <div className="card-label">Tarjeta/Transferencia</div>
                 <div className="card-value">${((resumenDiario.totalTarjeta || 0) + (resumenDiario.totalTransferencia || 0)).toFixed(2)}</div>
+              </div>
+            </div>
+            <div className="summary-card">
+              <div className="card-icon">📋</div>
+              <div className="card-content">
+                <div className="card-label">Deuda Proveedores</div>
+                <div className="card-value">${totalDeudaProveedores.toFixed(2)}</div>
               </div>
             </div>
           </div>

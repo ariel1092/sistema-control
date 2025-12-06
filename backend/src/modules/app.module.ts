@@ -12,6 +12,7 @@ import { ReportesModule } from './reportes/reportes.module';
 import { RetirosSociosModule } from './retiros-socios/retiros-socios.module';
 import { ProveedoresModule } from './proveedores/proveedores.module';
 import { AuthModule } from './auth/auth.module';
+import { MonitoreoModule } from './monitoreo/monitoreo.module';
 import { HealthController } from '../presentation/controllers/health.controller';
 import { IndexController } from '../presentation/controllers/index.controller';
 
@@ -29,6 +30,7 @@ import { IndexController } from '../presentation/controllers/index.controller';
     ReportesModule,
     RetirosSociosModule,
     ProveedoresModule,
+    MonitoreoModule,
   ],
   controllers: [IndexController, HealthController],
 })

@@ -152,3 +152,4 @@ await this.cacheManager.del(`ventas:${fechaKey}:EFECTIVO`);
 
 **¿Querés que continúe con alguna de estas optimizaciones opcionales?**
 
+

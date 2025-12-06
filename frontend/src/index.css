@@ -118,3 +118,19 @@ code {
   .show-mobile { display: none !important; }
   .hide-mobile { display: block !important; }
 }
+
+/* Prevenir cambio de valores con rueda del mouse en inputs numéricos */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Deshabilitar scroll en inputs numéricos cuando tienen foco */
+input[type="number"]:focus {
+  outline: none;
+}
