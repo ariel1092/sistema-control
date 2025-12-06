@@ -3,6 +3,8 @@ import { format } from 'date-fns';
 import { clientesApi } from '../services/api';
 import './ClientesPage.css';
 
+// Fix: Removed unused handleAbrirModalFactura function
+
 interface Cliente {
   id: string;
   nombre: string;
