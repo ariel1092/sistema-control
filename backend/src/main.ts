@@ -5,6 +5,8 @@ import * as Sentry from '@sentry/node';
 import { AppModule } from './modules/app.module';
 import { HttpExceptionFilter } from './presentation/filters/http-exception.filter';
 import { LoggingInterceptor } from './presentation/interceptors/logging.interceptor';
+import { RegisterUseCase } from './application/use-cases/auth/register.use-case';
+import { Rol } from './domain/enums/rol.enum';
 
 // Inicializar Sentry ANTES de crear la app
 if (process.env.SENTRY_DSN) {
@@ -77,6 +79,9 @@ async function bootstrap() {
     app.use(Sentry.Handlers.errorHandler());
   }
 
+  // Inicializar usuario administrador si no existe ningún usuario
+  await initializeAdminUser(app);
+
   // Configurar Swagger
   const config = new DocumentBuilder()
     .setTitle('Módulo de Ventas - Ferretería')
@@ -115,6 +120,38 @@ async function bootstrap() {
   console.log(`📚 Documentación Swagger: http://localhost:${port}/${apiPrefix}/docs`);
   if (process.env.SENTRY_DSN) {
     console.log(`🔔 Sentry configurado para monitoreo de errores`);
+  }
+}
+
+async function initializeAdminUser(app: any) {
+  try {
+    const registerUseCase = app.get(RegisterUseCase);
+
+    // Intentar crear el usuario administrador por defecto
+    // Si ya existe, el RegisterUseCase lanzará un ConflictException que capturamos
+    try {
+      await registerUseCase.execute({
+        nombre: 'Administrador',
+        email: 'admin@ferreteria.com',
+        password: 'admin123',
+        rol: Rol.ADMIN,
+      });
+      
+      console.log('✅ Usuario administrador creado exitosamente!');
+      console.log('📋 Credenciales por defecto:');
+      console.log('   Email: admin@ferreteria.com');
+      console.log('   Contraseña: admin123');
+      console.log('⚠️  IMPORTANTE: Cambia la contraseña después del primer inicio de sesión');
+    } catch (error: any) {
+      if (error.message?.includes('ya está registrado') || error.statusCode === 409) {
+        console.log('ℹ️  El usuario administrador ya existe en la base de datos');
+      } else {
+        console.error('❌ Error al crear usuario administrador:', error.message);
+      }
+    }
+  } catch (error: any) {
+    console.error('⚠️  Error al inicializar usuario administrador:', error.message);
+    // No detenemos la aplicación si falla la inicialización del admin
   }
 }
 

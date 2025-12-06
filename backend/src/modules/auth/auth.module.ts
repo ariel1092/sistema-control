@@ -36,7 +36,7 @@ import { UsuarioMongo, UsuarioSchema } from '../../infrastructure/persistence/mo
     LoginUseCase,
     RegisterUseCase,
   ],
-  exports: [LoginUseCase, RegisterUseCase],
+  exports: [LoginUseCase, RegisterUseCase, 'IUsuarioRepository'],
 })
 export class AuthModule {}
 
