@@ -164,18 +164,6 @@ function ClientesPage() {
     setCuentaCorriente(null);
   };
 
-  const handleAbrirModalFactura = () => {
-    setFormDataFactura({
-      numero: '',
-      fecha: format(new Date(), 'yyyy-MM-dd'),
-      fechaVencimiento: '',
-      montoTotal: '',
-      descripcion: '',
-      observaciones: '',
-    });
-    setShowModalFactura(true);
-  };
-
   const handleCerrarModalFactura = () => {
     setShowModalFactura(false);
     setFormDataFactura({
