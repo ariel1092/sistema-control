@@ -53,7 +53,8 @@ function GastosPage() {
     monto: '',
     descripcion: '',
     empleadoNombre: '',
-    metodoPago: 'EFECTIVO',
+    metodoPago: 'EFECTIVO' as 'EFECTIVO' | 'MERCADOPAGO',
+    cuentaBancaria: '' as '' | 'ABDUL' | 'OSVALDO',
     observaciones: '',
   });
   const [formRetiro, setFormRetiro] = useState({
@@ -70,6 +71,19 @@ function GastosPage() {
   const finMes = useMemo(() => endOfMonth(fechaHoy), [fechaHoy]);
   const inicioSemana = useMemo(() => startOfWeek(fechaHoy, { weekStartsOn: 1 }), [fechaHoy]);
   const finSemana = useMemo(() => endOfWeek(fechaHoy, { weekStartsOn: 1 }), [fechaHoy]);
+
+  const resetFormData = () => {
+    setFormData({
+      fecha: format(new Date(), 'yyyy-MM-dd'),
+      categoria: 'OTROS',
+      monto: '',
+      descripcion: '',
+      empleadoNombre: '',
+      metodoPago: 'EFECTIVO',
+      cuentaBancaria: '',
+      observaciones: '',
+    });
+  };
 
   useEffect(() => {
     cargarDatos();
@@ -151,17 +165,25 @@ function GastosPage() {
     e.preventDefault();
     try {
       setLoading(true);
-      await gastosApi.crear(formData);
+      const dataToSend: any = {
+        ...formData,
+        monto: parseFloat(formData.monto),
+      };
+      // Solo incluir cuentaBancaria si el método de pago es MercadoPago
+      if (formData.metodoPago === 'MERCADOPAGO') {
+        if (!formData.cuentaBancaria) {
+          setError('Debe seleccionar una cuenta bancaria cuando el método de pago es MercadoPago');
+          setLoading(false);
+          return;
+        }
+        dataToSend.cuentaBancaria = formData.cuentaBancaria;
+      } else {
+        // Remover cuentaBancaria si no es MercadoPago
+        delete dataToSend.cuentaBancaria;
+      }
+      await gastosApi.crear(dataToSend);
       setMostrarModal(false);
-      setFormData({
-        fecha: format(new Date(), 'yyyy-MM-dd'),
-        categoria: 'OTROS',
-        monto: '',
-        descripcion: '',
-        empleadoNombre: '',
-        metodoPago: 'EFECTIVO',
-        observaciones: '',
-      });
+      resetFormData();
       await cargarDatos();
       
       // Notificar a los reportes que hay un nuevo gasto
@@ -194,6 +216,7 @@ function GastosPage() {
       SNACK: 'Snacks',
       MANTENIMIENTO: 'Mantenimiento',
       LIMPIEZA: 'Limpieza',
+      MERCADERIA: 'Mercadería',
       OTROS: 'Otros',
     };
     return labels[cat] || cat;
@@ -202,9 +225,7 @@ function GastosPage() {
   const getMetodoPagoLabel = (metodo: string) => {
     const labels: Record<string, string> = {
       EFECTIVO: 'Efectivo',
-      CAJA: 'Caja',
       MERCADOPAGO: 'MercadoPago',
-      TRANSFERENCIA: 'Transferencia',
     };
     return labels[metodo] || metodo;
   };
@@ -379,11 +400,17 @@ function GastosPage() {
 
       {/* Modal Registrar Gasto */}
       {mostrarModal && (
-        <div className="modal-overlay" onClick={() => setMostrarModal(false)}>
+        <div className="modal-overlay" onClick={() => {
+          setMostrarModal(false);
+          resetFormData();
+        }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Registrar Gasto</h2>
-              <button className="modal-close" onClick={() => setMostrarModal(false)}>×</button>
+              <button className="modal-close" onClick={() => {
+                setMostrarModal(false);
+                resetFormData();
+              }}>×</button>
             </div>
             <form onSubmit={handleCrearGasto} className="modal-body">
               <div className="form-row">
@@ -407,6 +434,7 @@ function GastosPage() {
                     <option value="SNACK">🍿 Snack</option>
                     <option value="MANTENIMIENTO">🔧 Mantenimiento</option>
                     <option value="LIMPIEZA">🧹 Limpieza</option>
+                    <option value="MERCADERIA">📦 Mercadería</option>
                     <option value="OTROS">📦 Otros</option>
                   </select>
                 </div>
@@ -427,16 +455,59 @@ function GastosPage() {
                   <label className="form-label-required">Método de Pago</label>
                   <select
                     value={formData.metodoPago}
-                    onChange={(e) => setFormData({ ...formData, metodoPago: e.target.value })}
+                    onChange={(e) => {
+                      const nuevoMetodoPago = e.target.value as 'EFECTIVO' | 'MERCADOPAGO';
+                      setFormData({ 
+                        ...formData, 
+                        metodoPago: nuevoMetodoPago,
+                        cuentaBancaria: nuevoMetodoPago === 'EFECTIVO' ? '' : formData.cuentaBancaria
+                      });
+                    }}
                     required
                   >
                     <option value="EFECTIVO">💵 Efectivo</option>
-                    <option value="CAJA">💰 Caja</option>
                     <option value="MERCADOPAGO">💳 MercadoPago</option>
-                    <option value="TRANSFERENCIA">🏦 Transferencia</option>
                   </select>
                 </div>
               </div>
+
+              {formData.metodoPago === 'MERCADOPAGO' && (
+                <div className="form-group">
+                  <label className="form-label-required">Cuenta Bancaria</label>
+                  <div className="radio-card-group">
+                    <label className={`radio-card ${formData.cuentaBancaria === 'ABDUL' ? 'radio-card-selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="cuentaBancaria"
+                        value="ABDUL"
+                        checked={formData.cuentaBancaria === 'ABDUL'}
+                        onChange={(e) => setFormData({ ...formData, cuentaBancaria: e.target.value as 'ABDUL' })}
+                        required={formData.metodoPago === 'MERCADOPAGO'}
+                        className="radio-card-input"
+                      />
+                      <div className="radio-card-content">
+                        <div className="radio-card-icon">👤</div>
+                        <div className="radio-card-label">Cuenta A (Abdul)</div>
+                      </div>
+                    </label>
+                    <label className={`radio-card ${formData.cuentaBancaria === 'OSVALDO' ? 'radio-card-selected' : ''}`}>
+                      <input
+                        type="radio"
+                        name="cuentaBancaria"
+                        value="OSVALDO"
+                        checked={formData.cuentaBancaria === 'OSVALDO'}
+                        onChange={(e) => setFormData({ ...formData, cuentaBancaria: e.target.value as 'OSVALDO' })}
+                        required={formData.metodoPago === 'MERCADOPAGO'}
+                        className="radio-card-input"
+                      />
+                      <div className="radio-card-content">
+                        <div className="radio-card-icon">👤</div>
+                        <div className="radio-card-label">Cuenta O (Osvaldo)</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <div className="form-group">
                 <label className="form-label-required">Descripción</label>
@@ -469,7 +540,10 @@ function GastosPage() {
                 />
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setMostrarModal(false)}>
+                <button type="button" className="btn-secondary" onClick={() => {
+                  setMostrarModal(false);
+                  resetFormData();
+                }}>
                   Cancelar
                 </button>
                 <button type="submit" className="btn-primary" disabled={loading}>

@@ -536,6 +536,90 @@
   font-size: 14px;
 }
 
+/* Radio Card Styles */
+.radio-card-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.radio-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border: 2.5px solid #e5e7eb;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.radio-card:hover {
+  background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.radio-card-selected {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.25);
+  transform: translateY(-2px);
+}
+
+.radio-card-selected:hover {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #d97706;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+}
+
+.radio-card-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.radio-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.radio-card-icon {
+  font-size: 32px;
+  line-height: 1;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.radio-card-selected .radio-card-icon {
+  transform: scale(1.15) rotate(5deg);
+}
+
+.radio-card-label {
+  font-weight: 600;
+  font-size: 16px;
+  color: #374151;
+  transition: color 0.3s ease;
+  letter-spacing: 0.3px;
+}
+
+.radio-card-selected .radio-card-label {
+  color: #d97706;
+  font-weight: 700;
+}
+
 @media (max-width: 768px) {
   .retiros-grid {
     grid-template-columns: 1fr;
@@ -548,5 +632,9 @@
 
   .btn-sm {
     width: 100%;
+  }
+
+  .radio-card-group {
+    grid-template-columns: 1fr;
   }
 }

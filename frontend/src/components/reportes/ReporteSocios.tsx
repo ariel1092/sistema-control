@@ -72,14 +72,21 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
       cargarDatosRef.current();
     };
 
+    const handleGastoRegistrado = () => {
+      console.log('ReporteSocios: Evento gastoRegistrado recibido, actualizando...');
+      cargarDatosRef.current();
+    };
+
     window.addEventListener('ventaRegistrada', handleVentaRegistrada);
     window.addEventListener('ventaCancelada', handleVentaCancelada);
     window.addEventListener('retiroRegistrado', handleRetiroRegistrado);
+    window.addEventListener('gastoRegistrado', handleGastoRegistrado);
 
     return () => {
       window.removeEventListener('ventaRegistrada', handleVentaRegistrada);
       window.removeEventListener('ventaCancelada', handleVentaCancelada);
       window.removeEventListener('retiroRegistrado', handleRetiroRegistrado);
+      window.removeEventListener('gastoRegistrado', handleGastoRegistrado);
     };
   }, []);
 
@@ -105,26 +112,31 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
           <div key={balance.cuentaBancaria} className="summary-card">
             <div className="card-icon">{balance.cuentaBancaria === 'ABDUL' ? '👤' : '👤'}</div>
             <div className="card-content">
-              <div className="card-label">{balance.cuentaBancaria} (50%)</div>
-              <div className="card-value">{formatearMonto(balance.balanceDisponible)}</div>
+              <div className="card-label">{balance.cuentaBancaria === 'ABDUL' ? 'Cuenta A' : 'Cuenta O'}</div>
+              <div className="card-value">{formatearMonto(balance.totalRetiros)}</div>
               <div className="card-subvalue">
-                Ganancia: {formatearMonto(balance.totalIngresos)} | 
                 Retiros: {formatearMonto(balance.totalRetiros)}
               </div>
-              {balance.totalTransferenciasRecibidas !== undefined && (
-                <div className="card-subvalue" style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
-                  Transferencias recibidas: {formatearMonto(balance.totalTransferenciasRecibidas)} 
-                  <span style={{ marginLeft: '4px' }}>(solo método de pago)</span>
-                </div>
-              )}
+              <div className="card-subvalue" style={{ fontSize: '12px', color: '#10b981', marginTop: '4px' }}>
+                Transferencias recibidas: {formatearMonto(balance.totalTransferenciasRecibidas || 0)}
+              </div>
+              <div className="card-subvalue" style={{ fontSize: '12px', color: '#f59e0b', marginTop: '4px' }}>
+                Gastos MercadoPago: {formatearMonto(balance.totalGastosMercadoPago || 0)}
+              </div>
             </div>
           </div>
         ))}
         <div className="summary-card">
           <div className="card-icon">💰</div>
           <div className="card-content">
-            <div className="card-label">Balance Total Combinado</div>
-            <div className="card-value">{formatearMonto(data.balanceTotalCombinado)}</div>
+            <div className="card-label">Total Retiros Combinados</div>
+            <div className="card-value">{formatearMonto(data.totalRetirosCombinados)}</div>
+            <div className="card-subvalue" style={{ fontSize: '12px', color: '#10b981', marginTop: '4px' }}>
+              Total Transferencias: {formatearMonto(data.totalTransferenciasCombinadas || 0)}
+            </div>
+            <div className="card-subvalue" style={{ fontSize: '12px', color: '#f59e0b', marginTop: '4px' }}>
+              Total Gastos MercadoPago: {formatearMonto(data.totalGastosMercadoPagoCombinados || 0)}
+            </div>
           </div>
         </div>
       </div>
@@ -132,29 +144,32 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
       {/* Gráficos */}
       <div className="charts-grid">
         <div className="chart-card">
-          <h3>Comparativa de Rendimiento</h3>
+          <h3>Comparativa de Retiros y Gastos</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.comparativa}>
+            <BarChart data={data.comparativa.map((item: any) => ({
+              socio: item.socio === 'ABDUL' ? 'Cuenta A' : 'Cuenta O',
+              retiros: item.retiros,
+              gastosMercadoPago: item.gastosMercadoPago || 0,
+            }))}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="socio" />
               <YAxis />
               <Tooltip formatter={(value: number) => formatearMonto(value)} />
               <Legend />
-              <Bar dataKey="ingresos" fill="#3b82f6" name="Ingresos" />
               <Bar dataKey="retiros" fill="#ef4444" name="Retiros" />
-              <Bar dataKey="balance" fill="#10b981" name="Balance" />
+              <Bar dataKey="gastosMercadoPago" fill="#f59e0b" name="Gastos MercadoPago" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         <div className="chart-card">
-          <h3>Distribución de Ingresos</h3>
+          <h3>Distribución de Transferencias</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={data.comparativa.map((item: any) => ({
-                  name: item.socio,
-                  value: item.ingresos,
+                  name: item.socio === 'ABDUL' ? 'Cuenta A' : 'Cuenta O',
+                  value: item.transferencias || 0,
                 }))}
                 cx="50%"
                 cy="50%"

@@ -33,6 +33,23 @@ export class Cliente {
     }
   }
 
+  public agregarDeuda(monto: number): void {
+    if (monto <= 0) {
+      throw new Error('El monto de la deuda debe ser mayor a 0');
+    }
+    this.saldoCuentaCorriente += monto;
+  }
+
+  public reducirDeuda(monto: number): void {
+    if (monto <= 0) {
+      throw new Error('El monto del pago debe ser mayor a 0');
+    }
+    this.saldoCuentaCorriente -= monto;
+    if (this.saldoCuentaCorriente < 0) {
+      this.saldoCuentaCorriente = 0;
+    }
+  }
+
   public actualizarDatos(params: {
     nombre?: string;
     razonSocial?: string;

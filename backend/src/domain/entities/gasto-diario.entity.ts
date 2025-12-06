@@ -1,16 +1,17 @@
+import { CuentaBancaria } from '../enums/cuenta-bancaria.enum';
+
 export enum CategoriaGasto {
   FLETE = 'FLETE',
   SNACK = 'SNACK',
   MANTENIMIENTO = 'MANTENIMIENTO',
   LIMPIEZA = 'LIMPIEZA',
+  MERCADERIA = 'MERCADERIA',
   OTROS = 'OTROS',
 }
 
 export enum MetodoPagoGasto {
   EFECTIVO = 'EFECTIVO',
-  CAJA = 'CAJA',
   MERCADOPAGO = 'MERCADOPAGO',
-  TRANSFERENCIA = 'TRANSFERENCIA',
 }
 
 export class GastoDiario {
@@ -23,6 +24,7 @@ export class GastoDiario {
     public readonly empleadoNombre?: string,
     public readonly metodoPago: MetodoPagoGasto = MetodoPagoGasto.EFECTIVO,
     public readonly observaciones?: string,
+    public readonly cuentaBancaria?: CuentaBancaria,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date(),
   ) {
@@ -42,6 +44,12 @@ export class GastoDiario {
     if (!Object.values(MetodoPagoGasto).includes(this.metodoPago)) {
       throw new Error('El método de pago del gasto no es válido');
     }
+    if (this.metodoPago === MetodoPagoGasto.MERCADOPAGO && !this.cuentaBancaria) {
+      throw new Error('La cuenta bancaria es obligatoria cuando el método de pago es MercadoPago');
+    }
+    if (this.metodoPago === MetodoPagoGasto.EFECTIVO && this.cuentaBancaria) {
+      throw new Error('La cuenta bancaria no debe especificarse cuando el método de pago es Efectivo');
+    }
   }
 
   static crear(params: {
@@ -52,6 +60,7 @@ export class GastoDiario {
     empleadoNombre?: string;
     metodoPago?: MetodoPagoGasto;
     observaciones?: string;
+    cuentaBancaria?: CuentaBancaria;
   }): GastoDiario {
     return new GastoDiario(
       undefined,
@@ -62,6 +71,7 @@ export class GastoDiario {
       params.empleadoNombre,
       params.metodoPago || MetodoPagoGasto.EFECTIVO,
       params.observaciones,
+      params.cuentaBancaria,
     );
   }
 }

@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { CategoriaGasto, MetodoPagoGasto } from '../../../domain/entities/gasto-diario.entity';
+import { CuentaBancaria } from '../../../domain/enums/cuenta-bancaria.enum';
 
 export class GastoDiarioResponseDto {
   @ApiProperty()
@@ -22,6 +23,9 @@ export class GastoDiarioResponseDto {
 
   @ApiProperty({ enum: MetodoPagoGasto })
   metodoPago: MetodoPagoGasto;
+
+  @ApiProperty({ enum: CuentaBancaria, required: false })
+  cuentaBancaria?: CuentaBancaria;
 
   @ApiProperty({ required: false })
   observaciones?: string;

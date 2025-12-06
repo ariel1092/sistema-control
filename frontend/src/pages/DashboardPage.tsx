@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfWeek, startOfYear } from 'date-fns';
-import { cajaApi, proveedoresApi } from '../services/api';
+import { cajaApi, proveedoresApi, clientesApi } from '../services/api';
 import {
   LineChart,
   Line,
@@ -29,6 +29,7 @@ function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalDeudaProveedores, setTotalDeudaProveedores] = useState<number>(0);
+  const [totalDeudaClientes, setTotalDeudaClientes] = useState<number>(0);
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -145,6 +146,25 @@ function DashboardPage() {
     }
   }, []);
 
+  // Función para cargar el total de deuda de clientes
+  const cargarDeudaClientes = useCallback(async () => {
+    try {
+      const response = await clientesApi.obtenerTodos();
+      const clientes = response.data || [];
+      
+      // Calcular el total de deuda sumando el saldo de cuenta corriente de todos los clientes
+      const totalDeuda = clientes.reduce((sum: number, cliente: any) => {
+        const saldoCuentaCorriente = cliente.saldoCuentaCorriente || 0;
+        return sum + saldoCuentaCorriente;
+      }, 0);
+      
+      setTotalDeudaClientes(totalDeuda);
+    } catch (err: any) {
+      console.error('Error al cargar deuda de clientes:', err);
+      setTotalDeudaClientes(0);
+    }
+  }, []);
+
   // OPTIMIZACIÓN: Cargar datos con un pequeño delay para no bloquear el render inicial
   useEffect(() => {
     // Si hay datos en caché, mostrarlos inmediatamente
@@ -165,9 +185,10 @@ function DashboardPage() {
       return () => clearTimeout(timeoutId);
     }
     
-    // Cargar deuda de proveedores
-    cargarDeudaProveedores();
-  }, [cargarDatos, periodo, fecha, cargarDeudaProveedores]);
+      // Cargar deuda de proveedores y clientes
+      cargarDeudaProveedores();
+      cargarDeudaClientes();
+  }, [cargarDatos, periodo, fecha, cargarDeudaProveedores, cargarDeudaClientes]);
 
   // Usar ref para mantener la función cargarDatos actualizada sin recrear listeners
   const cargarDatosRef = useRef(cargarDatos);
@@ -243,7 +264,7 @@ function DashboardPage() {
       {loading && !resumenDiario && periodo === 'diario' && (
         <div className="dashboard-content">
           <div className="summary-cards">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="summary-card skeleton">
                 <div className="card-icon skeleton-icon"></div>
                 <div className="card-content">
@@ -294,6 +315,13 @@ function DashboardPage() {
               <div className="card-content">
                 <div className="card-label">Deuda Proveedores</div>
                 <div className="card-value">${totalDeudaProveedores.toFixed(2)}</div>
+              </div>
+            </div>
+            <div className="summary-card">
+              <div className="card-icon">👥</div>
+              <div className="card-content">
+                <div className="card-label">Deuda Clientes</div>
+                <div className="card-value">${totalDeudaClientes.toFixed(2)}</div>
               </div>
             </div>
           </div>

@@ -5,23 +5,14 @@ export class BalanceSocioDto {
   @ApiProperty({ enum: CuentaBancaria, description: 'Cuenta bancaria del socio' })
   cuentaBancaria: CuentaBancaria;
 
-  @ApiProperty({ description: 'Total de ingresos (50% del total de ventas del negocio)' })
-  totalIngresos: number;
-
   @ApiProperty({ description: 'Total de retiros realizados' })
   totalRetiros: number;
 
-  @ApiProperty({ description: 'Balance disponible (ingresos - retiros)' })
-  balanceDisponible: number;
+  @ApiProperty({ description: 'Total de transferencias recibidas en su cuenta' })
+  totalTransferenciasRecibidas: number;
 
-  @ApiProperty({ description: 'Ganancia estimada (50% del total de ventas)' })
-  gananciaEstimada: number;
-
-  @ApiProperty({ description: 'Porcentaje de retiros sobre ingresos' })
-  porcentajeRetiros: number;
-
-  @ApiProperty({ description: 'Total de transferencias recibidas en su cuenta (solo para información, no es ganancia individual)' })
-  totalTransferenciasRecibidas?: number;
+  @ApiProperty({ description: 'Total de gastos con MercadoPago (50% del total)' })
+  totalGastosMercadoPago: number;
 }
 
 export class ReporteSociosDto {
@@ -34,14 +25,14 @@ export class ReporteSociosDto {
   @ApiProperty({ type: [BalanceSocioDto], description: 'Balance de cada socio' })
   balances: BalanceSocioDto[];
 
-  @ApiProperty({ description: 'Total de ingresos combinados' })
-  totalIngresosCombinados: number;
-
   @ApiProperty({ description: 'Total de retiros combinados' })
   totalRetirosCombinados: number;
 
-  @ApiProperty({ description: 'Balance total combinado' })
-  balanceTotalCombinado: number;
+  @ApiProperty({ description: 'Total de transferencias combinadas' })
+  totalTransferenciasCombinadas: number;
+
+  @ApiProperty({ description: 'Total de gastos con MercadoPago combinados' })
+  totalGastosMercadoPagoCombinados: number;
 
   @ApiProperty({ description: 'Historial de retiros' })
   historialRetiros: {
@@ -52,13 +43,12 @@ export class ReporteSociosDto {
     descripcion: string;
   }[];
 
-  @ApiProperty({ description: 'Comparativa de rendimiento entre socios' })
+  @ApiProperty({ description: 'Comparativa de retiros, transferencias y gastos MercadoPago entre socios' })
   comparativa: {
     socio: CuentaBancaria;
-    ingresos: number;
     retiros: number;
-    balance: number;
-    porcentajeIngresos: number;
+    transferencias: number;
+    gastosMercadoPago: number;
   }[];
 }
 

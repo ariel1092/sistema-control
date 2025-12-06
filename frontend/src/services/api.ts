@@ -127,6 +127,16 @@ export const clientesApi = {
     api.put(`/clientes/${id}`, data),
   eliminar: (id: string) =>
     api.delete(`/clientes/${id}`),
+  obtenerCuentaCorriente: (clienteId: string) =>
+    api.get(`/clientes/${clienteId}/cuenta-corriente`),
+  obtenerFacturas: (clienteId: string) =>
+    api.get(`/clientes/${clienteId}/facturas`),
+  cargarFactura: (clienteId: string, data: any) =>
+    api.post(`/clientes/${clienteId}/facturas`, data),
+  registrarPago: (facturaId: string, data: { monto: number; descripcion?: string; observaciones?: string }) =>
+    api.post(`/clientes/facturas/${facturaId}/pago`, data),
+  registrarPagoDirecto: (clienteId: string, data: { monto: number; descripcion?: string; observaciones?: string }) =>
+    api.post(`/clientes/${clienteId}/pago-directo`, data),
 };
 
 // API de Empleados

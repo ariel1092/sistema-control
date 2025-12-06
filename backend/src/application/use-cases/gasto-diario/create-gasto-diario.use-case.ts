@@ -19,6 +19,7 @@ export class CreateGastoDiarioUseCase {
       empleadoNombre: dto.empleadoNombre,
       metodoPago: dto.metodoPago,
       observaciones: dto.observaciones,
+      cuentaBancaria: dto.cuentaBancaria,
     });
 
     return await this.gastoRepository.save(gasto);

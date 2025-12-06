@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsString, IsOptional, IsDateString, Min } from 'class-validator';
+import { IsEnum, IsNumber, IsString, IsOptional, IsDateString, Min, ValidateIf } from 'class-validator';
 import { CategoriaGasto, MetodoPagoGasto } from '../../../domain/entities/gasto-diario.entity';
+import { CuentaBancaria } from '../../../domain/enums/cuenta-bancaria.enum';
 
 export class CreateGastoDiarioDto {
   @ApiProperty({ description: 'Fecha del gasto', example: '2025-11-24' })
@@ -29,6 +30,11 @@ export class CreateGastoDiarioDto {
   @IsOptional()
   @IsEnum(MetodoPagoGasto)
   metodoPago?: MetodoPagoGasto;
+
+  @ApiProperty({ enum: CuentaBancaria, description: 'Cuenta bancaria (obligatorio si método de pago es MercadoPago)', required: false })
+  @ValidateIf((o) => o.metodoPago === MetodoPagoGasto.MERCADOPAGO)
+  @IsEnum(CuentaBancaria)
+  cuentaBancaria?: CuentaBancaria;
 
   @ApiProperty({ description: 'Observaciones adicionales', required: false })
   @IsOptional()

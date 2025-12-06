@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { CategoriaGasto, MetodoPagoGasto } from '../../../../domain/entities/gasto-diario.entity';
+import { CuentaBancaria } from '../../../../domain/enums/cuenta-bancaria.enum';
 
 export type GastoDiarioDocument = GastoDiarioMongo & Document;
 
@@ -23,6 +24,9 @@ export class GastoDiarioMongo {
 
   @Prop({ required: true, enum: Object.values(MetodoPagoGasto), default: MetodoPagoGasto.EFECTIVO })
   metodoPago: string;
+
+  @Prop({ enum: Object.values(CuentaBancaria) })
+  cuentaBancaria?: string;
 
   @Prop()
   observaciones?: string;
