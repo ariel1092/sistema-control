@@ -366,13 +366,6 @@ function ProveedoresPage() {
     return format(fecha, 'yyyy-MM-dd');
   };
 
-  const handleDiasParaPagarChange = (dias: string) => {
-    setFormDataFactura({
-      ...formDataFactura,
-      diasParaPagar: dias,
-      fechaVencimiento: calcularFechaVencimiento(dias),
-    });
-  };
 
   const handleCerrarModalDetalle = () => {
     setProveedorSeleccionado(null);

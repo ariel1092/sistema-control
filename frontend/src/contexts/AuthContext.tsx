@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return null;
   });
-  const [loading, setLoading] = useState(false); // Cambiar a false porque ya inicializamos desde localStorage
+  const [loading] = useState(false); // Cambiar a false porque ya inicializamos desde localStorage
 
   useEffect(() => {
     // Validar token en background (no bloquea el render inicial)

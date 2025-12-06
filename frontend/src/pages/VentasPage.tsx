@@ -13,7 +13,6 @@ interface VentaReciente {
     tipo: string;
     monto: number;
     cuentaBancaria?: string;
-    recargo?: number;
   }>;
   createdAt: string;
 }
@@ -23,7 +22,6 @@ function VentasPage() {
   const [efectivo, setEfectivo] = useState('');
   const [transferenciaAbdul, setTransferenciaAbdul] = useState(''); // Reutilizamos este estado para transferencias
   const [creditoDebito, setCreditoDebito] = useState('');
-  const [recargoDebito, setRecargoDebito] = useState('');
   const [descuentoCredito, setDescuentoCredito] = useState('');
   const [tipoCreditoDebito, setTipoCreditoDebito] = useState<'CREDITO' | 'DEBITO'>('DEBITO');
   const [loading, setLoading] = useState(false);
@@ -121,7 +119,7 @@ function VentasPage() {
   }, []);
 
 
-  const guardarVenta = async (tipo: string, monto: number, cuentaBancaria?: string, recargo?: number, descuento?: number) => {
+  const guardarVenta = async (tipo: string, monto: number, cuentaBancaria?: string, descuento?: number) => {
     if (monto <= 0) {
       setError('El monto debe ser mayor a 0');
       return;
@@ -141,7 +139,6 @@ function VentasPage() {
       const metodoPagoData: any = {
         tipo: tipo,
         monto: montoFinal,
-        recargo: 0,
       };
 
       // Agregar cuenta bancaria solo si es transferencia
@@ -259,7 +256,7 @@ function VentasPage() {
       }
     }
     
-    await guardarVenta(tipoCreditoDebito, monto, undefined, 0, descuento);
+    await guardarVenta(tipoCreditoDebito, monto, undefined, descuento);
     setCreditoDebito('');
     setDescuentoCredito('');
   };
