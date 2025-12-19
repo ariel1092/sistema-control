@@ -11,18 +11,19 @@ export class ProductoRepository implements IProductoRepository {
   constructor(
     @InjectModel(ProductoMongo.name)
     private productoModel: Model<ProductoDocument>,
-  ) {}
+  ) { }
 
-  async save(producto: Producto): Promise<Producto> {
+  async save(producto: Producto, options?: { session?: any }): Promise<Producto> {
     const productoDoc = ProductoMapper.toPersistence(producto);
+    const session = options?.session;
 
     if (producto.id) {
       const updated = await this.productoModel
-        .findByIdAndUpdate(producto.id, productoDoc, { new: true })
+        .findByIdAndUpdate(producto.id, productoDoc, { new: true, session })
         .exec();
       return ProductoMapper.toDomain(updated);
     } else {
-      const created = await this.productoModel.create(productoDoc);
+      const [created] = await this.productoModel.create([productoDoc], { session });
       return ProductoMapper.toDomain(created);
     }
   }
@@ -40,19 +41,28 @@ export class ProductoRepository implements IProductoRepository {
     return productoDoc ? ProductoMapper.toDomain(productoDoc) : null;
   }
 
-  async search(termino: string): Promise<Producto[]> {
-    const productosDocs = await this.productoModel
-      .find({
-        $or: [
-          { nombre: { $regex: termino, $options: 'i' } },
-          { descripcion: { $regex: termino, $options: 'i' } },
-          { codigo: { $regex: termino, $options: 'i' } },
-        ],
-      })
-      .limit(50)
-      .exec();
+  async search(termino: string, limit: number = 50, skip: number = 0): Promise<{ data: Producto[], total: number }> {
+    const filter = {
+      $or: [
+        { nombre: { $regex: termino, $options: 'i' } },
+        { descripcion: { $regex: termino, $options: 'i' } },
+        { codigo: { $regex: termino, $options: 'i' } },
+      ],
+    };
 
-    return productosDocs.map((doc) => ProductoMapper.toDomain(doc));
+    const [total, docs] = await Promise.all([
+      this.productoModel.countDocuments(filter).exec(),
+      this.productoModel
+        .find(filter)
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+    ]);
+
+    return {
+      data: docs.map((doc) => ProductoMapper.toDomain(doc)),
+      total,
+    };
   }
 
   async findByCategoria(categoria: string): Promise<Producto[]> {
@@ -63,14 +73,25 @@ export class ProductoRepository implements IProductoRepository {
     return productosDocs.map((doc) => ProductoMapper.toDomain(doc));
   }
 
-  async findAll(activos?: boolean): Promise<Producto[]> {
+  async findAll(activos?: boolean, limit: number = 0, skip: number = 0): Promise<{ data: Producto[], total: number }> {
     const query: any = {};
     if (activos !== undefined) {
       query.activo = activos;
     }
 
-    const productosDocs = await this.productoModel.find(query).exec();
-    return productosDocs.map((doc) => ProductoMapper.toDomain(doc));
+    const countQuery = this.productoModel.countDocuments(query).exec();
+    let findQuery = this.productoModel.find(query);
+
+    if (limit > 0) {
+      findQuery = findQuery.skip(skip).limit(limit);
+    }
+
+    const [total, docs] = await Promise.all([countQuery, findQuery.exec()]);
+
+    return {
+      data: docs.map((doc) => ProductoMapper.toDomain(doc)),
+      total,
+    };
   }
 
   async update(producto: Producto): Promise<Producto> {

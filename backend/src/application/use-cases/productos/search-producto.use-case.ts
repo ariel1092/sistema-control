@@ -7,11 +7,11 @@ export class SearchProductoUseCase {
   constructor(
     @Inject('IProductoRepository')
     private readonly productoRepository: IProductoRepository,
-  ) {}
+  ) { }
 
-  async execute(termino: string): Promise<Producto[]> {
+  async execute(termino: string, limit: number = 50, skip: number = 0): Promise<{ data: Producto[], total: number }> {
     if (!termino || termino.trim() === '') {
-      return [];
+      return { data: [], total: 0 };
     }
 
     // Buscar por código exacto primero
@@ -20,14 +20,11 @@ export class SearchProductoUseCase {
     );
 
     if (productoPorCodigo) {
-      return [productoPorCodigo];
+      return { data: [productoPorCodigo], total: 1 };
     }
 
     // Buscar por texto (nombre, descripción)
-    const productos = await this.productoRepository.search(termino.trim());
-
-    // Filtrar solo activos
-    return productos.filter((p) => p.activo);
+    return this.productoRepository.search(termino.trim(), limit, skip);
   }
 }
 

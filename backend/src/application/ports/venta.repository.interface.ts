@@ -1,7 +1,7 @@
 import { Venta } from '../../domain/entities/venta.entity';
 
 export interface IVentaRepository {
-  save(venta: Venta): Promise<Venta>;
+  save(venta: Venta, options?: { session?: any }): Promise<Venta>;
   findById(id: string): Promise<Venta | null>;
   findByNumero(numero: string): Promise<Venta | null>;
   findByFecha(fecha: Date): Promise<Venta[]>;

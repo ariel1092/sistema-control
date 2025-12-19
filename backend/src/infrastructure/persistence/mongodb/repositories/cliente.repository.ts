@@ -11,18 +11,19 @@ export class ClienteRepository implements IClienteRepository {
   constructor(
     @InjectModel(ClienteMongo.name)
     private clienteModel: Model<ClienteDocument>,
-  ) {}
+  ) { }
 
-  async save(cliente: Cliente): Promise<Cliente> {
+  async save(cliente: Cliente, options?: { session?: any }): Promise<Cliente> {
     const clienteDoc = ClienteMapper.toPersistence(cliente);
+    const session = options?.session;
 
     if (cliente.id) {
       const updated = await this.clienteModel
-        .findByIdAndUpdate(cliente.id, clienteDoc, { new: true })
+        .findByIdAndUpdate(cliente.id, clienteDoc, { new: true, session })
         .exec();
       return ClienteMapper.toDomain(updated);
     } else {
-      const created = await this.clienteModel.create(clienteDoc);
+      const [created] = await this.clienteModel.create([clienteDoc], { session });
       return ClienteMapper.toDomain(created);
     }
   }

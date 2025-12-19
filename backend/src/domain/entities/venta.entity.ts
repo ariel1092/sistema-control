@@ -95,7 +95,7 @@ export class Venta {
   public calcularRecargo(): number {
     // Calcular recargo de crédito o débito si hay métodos de pago con recargo
     let recargoTotal = 0;
-    
+
     const subtotal = this.calcularSubtotal();
     const descuento = this.calcularDescuento();
     const subtotalConDescuento = subtotal - descuento;
@@ -123,7 +123,7 @@ export class Venta {
         }
       }
     });
-    
+
     return recargoTotal;
   }
 
@@ -131,7 +131,7 @@ export class Venta {
     const subtotal = this.calcularSubtotal();
     const descuento = this.calcularDescuento();
     const recargo = this.calcularRecargo();
-    
+
     return subtotal - descuento + recargo;
   }
 
@@ -142,7 +142,7 @@ export class Venta {
 
     this.estado = EstadoVenta.CANCELADA;
     this.canceladoPor = usuarioId;
-    this.canceladoEn = new Date();
+    this.canceladoEn = new Date(); // Fecha actual
 
     if (motivo) {
       this.observaciones = motivo;
@@ -199,7 +199,7 @@ export class Venta {
       const dia = ahora.getDate(); // Usar getDate() local, no UTC
       // Crear fecha en UTC pero con el día/mes/año de la fecha local actual
       fechaVenta = new Date(Date.UTC(año, mes, dia, 0, 0, 0, 0));
-      
+
       // DEBUG: Log para verificar la fecha que se está guardando
       console.log(`[Venta.crear] Fecha actual del servidor (local): ${ahora.toISOString()}`);
       console.log(`[Venta.crear] Fecha que se guardará (UTC normalizada): ${fechaVenta.toISOString()}`);
@@ -229,7 +229,7 @@ export class Venta {
     const año = fecha.getFullYear();
     const mes = String(fecha.getMonth() + 1).padStart(2, '0');
     const dia = String(fecha.getDate()).padStart(2, '0');
-    
+
     // Usar timestamp en milisegundos para garantizar unicidad
     // Tomar los últimos 6 dígitos del timestamp para mantener formato corto
     const timestamp = Date.now();

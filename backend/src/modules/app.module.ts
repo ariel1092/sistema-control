@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { DatabaseModule } from './database/database.module';
 import { CacheModule } from './cache/cache.module';
 import { VentasModule } from './ventas/ventas.module';
@@ -18,6 +20,13 @@ import { IndexController } from '../presentation/controllers/index.controller';
 
 @Module({
   imports: [
+    // Rate Limiting: 100 requests por minuto por IP
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 60 segundos (1 minuto)
+        limit: 100, // 100 requests máximo
+      },
+    ]),
     DatabaseModule,
     CacheModule,
     AuthModule,
@@ -33,5 +42,12 @@ import { IndexController } from '../presentation/controllers/index.controller';
     MonitoreoModule,
   ],
   controllers: [IndexController, HealthController],
+  providers: [
+    // Aplicar ThrottlerGuard globalmente
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule { }

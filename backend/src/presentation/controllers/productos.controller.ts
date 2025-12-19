@@ -1,5 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ImportarProductosExcelUseCase } from '../../application/use-cases/productos/importar-productos-excel.use-case';
 import { CreateProductoUseCase } from '../../application/use-cases/productos/create-producto.use-case';
 import { SearchProductoUseCase } from '../../application/use-cases/productos/search-producto.use-case';
 import { GetProductoByIdUseCase } from '../../application/use-cases/productos/get-producto-by-id.use-case';
@@ -31,23 +33,45 @@ export class ProductosController {
     private readonly getMovimientosStockUseCase: GetMovimientosStockUseCase,
     private readonly getProductosAlertasUseCase: GetProductosAlertasUseCase,
     private readonly getAllProductosUseCase: GetAllProductosUseCase,
-  ) {}
+    private readonly importarProductosExcelUseCase: ImportarProductosExcelUseCase,
+  ) { }
+
+  @Post('importar-excel')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Importar productos desde Excel' })
+  @ApiResponse({ status: 200, description: 'Importación completada' })
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      throw new Error('No se ha subido ningún archivo');
+    }
+    console.log('Procesando archivo excel...');
+    return this.importarProductosExcelUseCase.execute(file.buffer);
+  }
+
 
   @Get()
   @ApiOperation({ summary: 'Buscar o listar productos' })
   @ApiResponse({ status: 200, description: 'Lista de productos' })
-  async search(@Query('q') termino?: string, @Query('all') all?: string, @Query('activos') activos?: string) {
+  async search(
+    @Query('q') termino?: string,
+    @Query('all') all?: string,
+    @Query('activos') activos?: string,
+    @Query('limit') limit?: string,
+    @Query('page') page?: string
+  ) {
+    const limitNum = limit ? parseInt(limit) : 50;
+    const pageNum = page ? parseInt(page) : 1;
+    const skip = (pageNum - 1) * limitNum;
+
     if (all === 'true') {
-      // Si se especifica activos, usar ese valor, sino solo activos por defecto
       const soloActivos = activos !== undefined ? activos === 'true' : true;
-      return this.getAllProductosUseCase.execute(soloActivos);
+      return this.getAllProductosUseCase.execute(soloActivos, limitNum, skip);
     }
     if (termino) {
-      return this.searchProductoUseCase.execute(termino);
+      return this.searchProductoUseCase.execute(termino, limitNum, skip);
     }
-    // Por defecto, devolver todos (activos e inactivos) si no se especifica 'all'
     const soloActivos = activos !== undefined ? activos === 'true' : undefined;
-    return this.getAllProductosUseCase.execute(soloActivos);
+    return this.getAllProductosUseCase.execute(soloActivos, limitNum, skip);
   }
 
   @Get('alertas')
@@ -143,3 +167,4 @@ export class ProductosController {
     return this.ajusteInventarioUseCase.execute(id, dto.cantidad, dto.motivo, userId);
   }
 }
+

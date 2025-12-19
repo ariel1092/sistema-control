@@ -76,18 +76,41 @@ function ProductosPage() {
     motivo: '',
   });
 
-  // Cargar productos
+  // Estados para paginación
+  const [totalProductos, setTotalProductos] = useState(0);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [limitePorPagina] = useState(50);
+  const [busquedaDebounced, setBusquedaDebounced] = useState('');
+
+  // Debounce para la búsqueda
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBusquedaDebounced(busqueda);
+      setPaginaActual(1); // Reset a primera página al buscar
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [busqueda]);
+
+  // Cargar productos con paginación y búsqueda
   const cargarProductos = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await productosApi.obtenerTodos();
-      setProductos(response.data);
+      const response = await productosApi.obtenerTodos({
+        q: busquedaDebounced,
+        page: paginaActual,
+        limit: limitePorPagina,
+        activos: filtroStock === 'inactivos' ? false : (filtroStock === 'todos' ? undefined : true)
+      });
+
+      const { data, total } = response.data;
+      setProductos(data);
+      setTotalProductos(total);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar productos');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [busquedaDebounced, paginaActual, limitePorPagina, filtroStock]);
 
   // Cargar movimientos
   const cargarMovimientos = useCallback(async (productoId?: string) => {
@@ -109,51 +132,37 @@ function ProductosPage() {
     }
   }, [cargarProductos, vista, cargarMovimientos]);
 
-  // Obtener categorías únicas
+  // Obtener categorías únicas (Solo si es necesario, pero ahora es difícil con paginación server-side)
+  // Mantendremos esto pero sabiendo que solo mostrará categorías de la página actual o precargadas
   const categorias = useMemo(() => {
     const cats = new Set(productos.map(p => p.categoria));
     return Array.from(cats).sort();
   }, [productos]);
 
-  // Filtrar productos
+  // El filtrado ahora es principalmente server-side, pero podemos dejar un filtro rápido local para lo que ya bajó
   const productosFiltrados = useMemo(() => {
     let filtrados = productos;
-
-    // Filtro de búsqueda
-    if (busqueda) {
-      const termino = busqueda.toLowerCase();
-      filtrados = filtrados.filter(
-        p =>
-          p.nombre.toLowerCase().includes(termino) ||
-          p.codigo.toLowerCase().includes(termino) ||
-          p.descripcion?.toLowerCase().includes(termino) ||
-          p.marca?.toLowerCase().includes(termino)
-      );
-    }
-
-    // Filtro de categoría
     if (filtroCategoria !== 'todas') {
       filtrados = filtrados.filter(p => p.categoria === filtroCategoria);
     }
-
-    // Filtro de stock
-    if (filtroStock === 'sinStock') {
-      filtrados = filtrados.filter(p => p.stockActual === 0);
-    } else if (filtroStock === 'stockBajo') {
-      filtrados = filtrados.filter(p => p.stockActual > 0 && p.stockActual <= p.stockMinimo);
-    }
-
     return filtrados;
-  }, [productos, busqueda, filtroCategoria, filtroStock]);
+  }, [productos, filtroCategoria]);
 
-  // Obtener alertas
-  const alertas = useMemo(() => {
-    const sinStock = productos.filter(p => p.stockActual === 0 && p.activo);
-    const stockBajo = productos.filter(
-      p => p.stockActual > 0 && p.stockActual <= p.stockMinimo && p.activo
-    );
-    return { sinStock, stockBajo };
-  }, [productos]);
+  // Estados para alertas
+  const [alertas, setAlertas] = useState<{ sinStock: Producto[], stockBajo: Producto[] }>({ sinStock: [], stockBajo: [] });
+
+  const cargarAlertas = useCallback(async () => {
+    try {
+      const response = await productosApi.obtenerAlertas();
+      setAlertas(response.data);
+    } catch (err) {
+      console.error("Error al cargar alertas", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarAlertas();
+  }, [cargarAlertas]);
 
   const formatearMonto = (monto: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -258,6 +267,7 @@ function ProductosPage() {
       setMostrarIngresarStock(false);
       setStockData({ cantidad: '', descripcion: '', motivo: '' });
       cargarProductos();
+      cargarAlertas();
       if (mostrarDetalle) {
         cargarMovimientos(productoSeleccionado.id);
       }
@@ -281,6 +291,7 @@ function ProductosPage() {
       setMostrarDescontarStock(false);
       setStockData({ cantidad: '', descripcion: '', motivo: '' });
       cargarProductos();
+      cargarAlertas();
       if (mostrarDetalle) {
         cargarMovimientos(productoSeleccionado.id);
       }
@@ -304,6 +315,7 @@ function ProductosPage() {
       setMostrarAjuste(false);
       setStockData({ cantidad: '', descripcion: '', motivo: '' });
       cargarProductos();
+      cargarAlertas();
       if (mostrarDetalle) {
         cargarMovimientos(productoSeleccionado.id);
       }
@@ -430,12 +442,47 @@ function ProductosPage() {
                 <option value="stockBajo">Stock Bajo</option>
               </select>
             </div>
-            <button
-              className="btn btn-primary"
-              onClick={() => setMostrarCrear(true)}
-            >
-              ➕ Nuevo Producto
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => document.getElementById('file-upload')?.click()}
+              >
+                📤 Importar Excel
+              </button>
+              <input
+                type="file"
+                id="file-upload"
+                style={{ display: 'none' }}
+                accept=".xlsx, .xls"
+                onChange={async (e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    try {
+                      setLoading(true);
+                      const res = await productosApi.importarExcel(e.target.files[0]);
+                      const { procesados, creados, actualizados, errores } = res.data;
+                      let msg = `Proceso completado. Procesados: ${procesados}. Creados: ${creados}. Actualizados: ${actualizados}.`;
+                      if (errores.length > 0) msg += ` Errores: ${errores.length}`;
+                      alert(msg);
+                      if (errores.length > 0) console.error("Errores de importación:", errores);
+                      cargarProductos();
+                    } catch (err: any) {
+                      setError("Error al importar el archivo");
+                      console.error(err);
+                    } finally {
+                      setLoading(false);
+                      // Clear input
+                      e.target.value = '';
+                    }
+                  }
+                }}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={() => setMostrarCrear(true)}
+              >
+                ➕ Nuevo Producto
+              </button>
+            </div>
           </div>
 
           {/* Tabla de productos */}
@@ -513,6 +560,28 @@ function ProductosPage() {
                   })}
                 </tbody>
               </table>
+              <div className="pagination-controls">
+                <div className="pagination-info">
+                  Mostrando {((paginaActual - 1) * limitePorPagina) + 1} - {Math.min(paginaActual * limitePorPagina, totalProductos)} de {totalProductos} productos
+                </div>
+                <div className="pagination-buttons">
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    disabled={paginaActual === 1 || loading}
+                    onClick={() => setPaginaActual(p => p - 1)}
+                  >
+                    ◀ Anterior
+                  </button>
+                  <span className="pagination-current">Página {paginaActual} de {Math.ceil(totalProductos / limitePorPagina)}</span>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    disabled={paginaActual >= Math.ceil(totalProductos / limitePorPagina) || loading}
+                    onClick={() => setPaginaActual(p => p + 1)}
+                  >
+                    Siguiente ▶
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="alert alert-info">

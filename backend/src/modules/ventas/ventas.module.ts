@@ -8,18 +8,25 @@ import { CreateVentaUseCase } from '../../application/use-cases/ventas/create-ve
 import { GetVentasDiaUseCase } from '../../application/use-cases/ventas/get-ventas-dia.use-case';
 import { GetVentasRecientesUseCase } from '../../application/use-cases/ventas/get-ventas-recientes.use-case';
 import { GetTransferenciasSocioUseCase } from '../../application/use-cases/ventas/get-transferencias-socio.use-case';
-import { CancelVentaUseCase } from '../../application/use-cases/ventas/cancel-venta.use-case';
 import { ProductosModule } from '../productos/productos.module';
-// import { GetVentaByIdUseCase } from '../../application/use-cases/ventas/get-venta-by-id.use-case';
-// import { GetVentasRangoUseCase } from '../../application/use-cases/ventas/get-ventas-rango.use-case';
+import { MovimientoVentaMongo, MovimientoVentaSchema } from '../../infrastructure/persistence/mongodb/schemas/movimiento-venta.schema';
+import { MovimientoVentaRepository } from '../../infrastructure/persistence/mongodb/repositories/movimiento-venta.repository';
+import { RegistrarMovimientoVentaUseCase } from '../../application/use-cases/ventas/registrar-movimiento-venta.use-case';
+import { RegistrarMovimientoCCVentaUseCase } from '../../application/use-cases/ventas/registrar-movimiento-cc-venta.use-case';
+import { ClientesModule } from '../clientes/clientes.module';
+import { AuditoriaModule } from '../auditoria/auditoria.module';
+import { CancelarVentaUseCase } from '../../application/use-cases/ventas/cancelar-venta.use-case';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: VentaMongo.name, schema: VentaSchema },
       { name: DetalleVentaMongo.name, schema: DetalleVentaSchema },
+      { name: MovimientoVentaMongo.name, schema: MovimientoVentaSchema },
     ]),
     ProductosModule,
+    ClientesModule,
+    AuditoriaModule,
   ],
   controllers: [VentasController],
   providers: [
@@ -27,14 +34,18 @@ import { ProductosModule } from '../productos/productos.module';
       provide: 'IVentaRepository',
       useClass: VentaRepository,
     },
+    {
+      provide: 'IMovimientoVentaRepository',
+      useClass: MovimientoVentaRepository,
+    },
     CreateVentaUseCase,
     GetVentasDiaUseCase,
     GetVentasRecientesUseCase,
     GetTransferenciasSocioUseCase,
-    CancelVentaUseCase,
-    // GetVentaByIdUseCase,
-    // GetVentasRangoUseCase,
+    CancelarVentaUseCase,
+    RegistrarMovimientoVentaUseCase,
+    RegistrarMovimientoCCVentaUseCase,
   ],
   exports: ['IVentaRepository', GetVentasDiaUseCase, GetVentasRecientesUseCase],
 })
-export class VentasModule {}
+export class VentasModule { }

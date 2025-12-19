@@ -1,0 +1,7 @@
+export enum TipoEventoAuditoria {
+    CREACION = 'CREACION',
+    MODIFICACION = 'MODIFICACION',
+    CANCELACION = 'CANCELACION',
+    PAGO = 'PAGO',
+    REVERSION = 'REVERSION',
+}

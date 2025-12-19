@@ -15,11 +15,13 @@ export class VentaRepository implements IVentaRepository {
     private ventaModel: Model<VentaDocument>,
     @InjectModel(DetalleVentaMongo.name)
     private detalleVentaModel: Model<DetalleVentaDocument>,
-  ) {}
+  ) { }
 
-  async save(venta: Venta): Promise<Venta> {
+  async save(venta: Venta, options?: { session?: any }): Promise<Venta> {
     const { venta: ventaDoc, detalles: detallesDocs } =
       VentaMapper.toPersistence(venta);
+
+    const session = options?.session;
 
     // Logs removidos en producción para mejorar performance
 
@@ -29,7 +31,7 @@ export class VentaRepository implements IVentaRepository {
       ventaGuardada = await this.ventaModel
         .findByIdAndUpdate(venta.id, ventaDoc, { new: true })
         .exec();
-      
+
       // Eliminar detalles antiguos
       await this.detalleVentaModel.deleteMany({
         ventaId: new Types.ObjectId(venta.id),
@@ -44,6 +46,7 @@ export class VentaRepository implements IVentaRepository {
         ...det,
         ventaId: ventaGuardada._id,
       })),
+      { session }
     );
 
     // Retornar dominio con los IDs generados

@@ -12,17 +12,19 @@ export class MovimientoStockRepository implements IMovimientoStockRepository {
   constructor(
     @InjectModel(MovimientoStockMongo.name)
     private movimientoStockModel: Model<MovimientoStockDocument>,
-  ) {}
+  ) { }
 
-  async save(movimiento: MovimientoStock): Promise<MovimientoStock> {
+  async save(movimiento: MovimientoStock, options?: { session?: any }): Promise<MovimientoStock> {
     const movimientoDoc = MovimientoStockMapper.toPersistence(movimiento);
+    const session = options?.session;
+
     if (movimiento.id) {
       const updated = await this.movimientoStockModel
-        .findByIdAndUpdate(movimiento.id, movimientoDoc, { new: true })
+        .findByIdAndUpdate(movimiento.id, movimientoDoc, { new: true, session })
         .exec();
       return MovimientoStockMapper.toDomain(updated);
     } else {
-      const created = await this.movimientoStockModel.create(movimientoDoc);
+      const [created] = await this.movimientoStockModel.create([movimientoDoc], { session });
       return MovimientoStockMapper.toDomain(created);
     }
   }
@@ -53,7 +55,7 @@ export class MovimientoStockRepository implements IMovimientoStockRepository {
 
   async findByTipo(tipo: TipoMovimientoStock, fechaInicio?: Date, fechaFin?: Date): Promise<MovimientoStock[]> {
     const query: any = { tipo };
-    
+
     if (fechaInicio || fechaFin) {
       query.createdAt = {};
       if (fechaInicio) {
@@ -75,7 +77,7 @@ export class MovimientoStockRepository implements IMovimientoStockRepository {
 
   async findAll(fechaInicio?: Date, fechaFin?: Date): Promise<MovimientoStock[]> {
     const query: any = {};
-    
+
     if (fechaInicio || fechaFin) {
       query.createdAt = {};
       if (fechaInicio) {

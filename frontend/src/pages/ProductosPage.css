@@ -706,6 +706,36 @@
   color: #6b7280;
 }
 
+/* Paginación */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f9fafb;
+  border-top: 2px solid #e5e7eb;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pagination-current {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .alertas-container {
@@ -726,5 +756,11 @@
 
   .producto-acciones-stock .btn {
     width: 100%;
+  }
+
+  .pagination-controls {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
   }
 }

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as Sentry from '@sentry/node';
+import helmet from 'helmet';
 import { AppModule } from './modules/app.module';
 import { HttpExceptionFilter } from './presentation/filters/http-exception.filter';
 import { LoggingInterceptor } from './presentation/interceptors/logging.interceptor';
@@ -24,7 +25,25 @@ if (process.env.SENTRY_DSN) {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Middleware de logging básico (debe ir primero)
+  // Configurar Helmet para seguridad HTTP (debe ir primero)
+  app.use(helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    } : false, // Desactivar CSP en desarrollo para Swagger
+    crossOriginEmbedderPolicy: false, // Necesario para Swagger
+    hsts: {
+      maxAge: 31536000, // 1 año
+      includeSubDomains: true,
+      preload: true,
+    },
+  }));
+
+  // Middleware de logging básico
   app.use((req: any, res: any, next: any) => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] ${req.method} ${req.path}`);
@@ -44,12 +63,12 @@ async function bootstrap() {
   // Configurar CORS
   const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174';
   const corsOrigins = corsOrigin.split(',').map((origin) => origin.trim());
-  
+
   app.enableCors({
-    origin: corsOrigins.length === 1 && corsOrigins[0] === '*' 
-      ? true 
-      : corsOrigins.includes('*') 
-        ? true 
+    origin: corsOrigins.length === 1 && corsOrigins[0] === '*'
+      ? true
+      : corsOrigins.includes('*')
+        ? true
         : corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -136,7 +155,7 @@ async function initializeAdminUser(app: any) {
         password: 'admin123',
         rol: Rol.ADMIN,
       });
-      
+
       console.log('✅ Usuario administrador creado exitosamente!');
       console.log('📋 Credenciales por defecto:');
       console.log('   Email: admin@ferreteria.com');

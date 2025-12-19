@@ -13,6 +13,7 @@ import { RegistrarVentaStockUseCase } from '../../application/use-cases/producto
 import { GetMovimientosStockUseCase } from '../../application/use-cases/productos/get-movimientos-stock.use-case';
 import { GetProductosAlertasUseCase } from '../../application/use-cases/productos/get-productos-alertas.use-case';
 import { GetAllProductosUseCase } from '../../application/use-cases/productos/get-all-productos.use-case';
+import { ImportarProductosExcelUseCase } from '../../application/use-cases/productos/importar-productos-excel.use-case';
 import { ProductoRepository } from '../../infrastructure/persistence/mongodb/repositories/producto.repository';
 import { MovimientoStockRepository } from '../../infrastructure/persistence/mongodb/repositories/movimiento-stock.repository';
 import { ProductoMongo, ProductoSchema } from '../../infrastructure/persistence/mongodb/schemas/producto.schema';
@@ -49,6 +50,7 @@ import { MovimientoStockMongo, MovimientoStockSchema } from '../../infrastructur
     GetMovimientosStockUseCase,
     GetProductosAlertasUseCase,
     GetAllProductosUseCase,
+    ImportarProductosExcelUseCase,
   ],
   exports: [
     CreateProductoUseCase,
@@ -63,11 +65,12 @@ import { MovimientoStockMongo, MovimientoStockSchema } from '../../infrastructur
     GetMovimientosStockUseCase,
     GetProductosAlertasUseCase,
     GetAllProductosUseCase,
+    ImportarProductosExcelUseCase,
     'IProductoRepository',
     'IMovimientoStockRepository',
   ],
 })
-export class ProductosModule {}
+export class ProductosModule { }
 
 
 

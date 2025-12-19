@@ -11,18 +11,19 @@ export class MovimientoCuentaCorrienteClienteRepository implements IMovimientoCu
   constructor(
     @InjectModel(MovimientoCuentaCorrienteClienteMongo.name)
     private movimientoModel: Model<MovimientoCuentaCorrienteClienteDocument>,
-  ) {}
+  ) { }
 
-  async save(movimiento: MovimientoCuentaCorrienteCliente): Promise<MovimientoCuentaCorrienteCliente> {
+  async save(movimiento: MovimientoCuentaCorrienteCliente, options?: { session?: any }): Promise<MovimientoCuentaCorrienteCliente> {
     const movimientoDoc = MovimientoCuentaCorrienteClienteMapper.toPersistence(movimiento);
+    const session = options?.session;
 
     if (movimiento.id) {
       const updated = await this.movimientoModel
-        .findByIdAndUpdate(movimiento.id, movimientoDoc, { new: true })
+        .findByIdAndUpdate(movimiento.id, movimientoDoc, { new: true, session })
         .exec();
       return MovimientoCuentaCorrienteClienteMapper.toDomain(updated);
     } else {
-      const created = await this.movimientoModel.create(movimientoDoc);
+      const [created] = await this.movimientoModel.create([movimientoDoc], { session });
       return MovimientoCuentaCorrienteClienteMapper.toDomain(created);
     }
   }

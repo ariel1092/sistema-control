@@ -43,6 +43,7 @@ export class MovimientoCuentaCorrienteCliente {
     return [
       TipoMovimientoCC.FACTURA,
       TipoMovimientoCC.NOTA_DEBITO,
+      TipoMovimientoCC.VENTA,
     ].includes(this.tipo);
   }
 

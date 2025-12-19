@@ -85,10 +85,10 @@ export const ventasApi = {
 
 // API de Productos
 export const productosApi = {
-  buscar: (termino: string) =>
-    api.get(`/productos?q=${encodeURIComponent(termino)}`),
-  obtenerTodos: () =>
-    api.get(`/productos?all=true`),
+  buscar: (termino: string, params?: { limit?: number; page?: number }) =>
+    api.get('/productos', { params: { q: termino, ...params } }),
+  obtenerTodos: (params?: { q?: string; all?: boolean; activos?: boolean; limit?: number; page?: number }) =>
+    api.get(`/productos`, { params: { all: true, ...params } }),
   obtenerPorId: (id: string) =>
     api.get(`/productos/${id}`),
   obtenerAlertas: () =>
@@ -113,6 +113,15 @@ export const productosApi = {
     api.post(`/productos/${id}/stock/descontar`, data),
   ajustarInventario: (id: string, data: { cantidad: number; motivo: string }) =>
     api.post(`/productos/${id}/stock/ajustar`, data),
+  importarExcel: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/productos/importar-excel', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
 };
 
 // API de Clientes

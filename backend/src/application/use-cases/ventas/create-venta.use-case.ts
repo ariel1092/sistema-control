@@ -1,6 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { InjectConnection } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 import { Venta } from '../../../domain/entities/venta.entity';
 import { DetalleVenta } from '../../../domain/entities/detalle-venta.entity';
 import { MetodoPago } from '../../../domain/value-objects/metodo-pago.vo';
@@ -12,6 +14,11 @@ import { VentaApplicationException } from '../../exceptions/venta-application.ex
 import { TipoMetodoPago } from '../../../domain/enums/tipo-metodo-pago.enum';
 import { TipoComprobante } from '../../../domain/enums/tipo-comprobante.enum';
 import { EstadoVenta } from '../../../domain/enums/estado-venta.enum';
+import { RegistrarMovimientoVentaUseCase } from './registrar-movimiento-venta.use-case';
+import { TipoEventoVenta } from '../../../domain/enums/tipo-evento-venta.enum';
+import { RegistrarMovimientoCCVentaUseCase } from './registrar-movimiento-cc-venta.use-case';
+import { RegistrarAuditoriaUseCase } from '../auditoria/registrar-auditoria.use-case';
+import { TipoEventoAuditoria } from '../../../domain/enums/tipo-evento-auditoria.enum';
 
 @Injectable()
 export class CreateVentaUseCase {
@@ -21,15 +28,19 @@ export class CreateVentaUseCase {
     @Inject('IProductoRepository')
     private readonly productoRepository: IProductoRepository,
     private readonly registrarVentaStockUseCase: RegistrarVentaStockUseCase,
+    private readonly registrarMovimientoVentaUseCase: RegistrarMovimientoVentaUseCase,
+    private readonly registrarMovimientoCCVentaUseCase: RegistrarMovimientoCCVentaUseCase,
+    private readonly registrarAuditoriaUseCase: RegistrarAuditoriaUseCase,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+    @InjectConnection() private readonly connection: Connection,
+  ) { }
 
   private generarNumeroVentaUnico(tipoComprobante?: TipoComprobante): string {
     const fecha = new Date();
     const año = fecha.getFullYear();
     const mes = String(fecha.getMonth() + 1).padStart(2, '0');
     const dia = String(fecha.getDate()).padStart(2, '0');
-    
+
     // Usar timestamp en milisegundos para garantizar unicidad
     // Tomar los últimos 6 dígitos del timestamp para mantener formato corto
     const timestamp = Date.now();
@@ -55,225 +66,135 @@ export class CreateVentaUseCase {
   }
 
   async execute(dto: CreateVentaDto, vendedorId: string): Promise<Venta> {
-    // 1. Validar que todos los productos existan y tengan stock (si hay items)
-    const detalles: DetalleVenta[] = [];
+    const session = await this.connection.startSession();
 
-    // Permitir ventas sin productos (solo registro de pago)
-    if (dto.items && dto.items.length > 0) {
-      // OPTIMIZACIÓN: Validar IDs primero (síncrono)
-      const productoIds = dto.items.map((item) => {
-        if (!item.productoId || item.productoId.trim() === '' || item.productoId === 'string') {
-          throw new VentaApplicationException(
-            `ID de producto inválido: "${item.productoId}". Debe ser un ObjectId válido de MongoDB.`,
-            400,
-            'PRODUCTO_ID_INVALIDO',
-          );
+    const runInTransaction = async () => {
+      if (dto.esCuentaCorriente && !dto.clienteDNI) {
+        throw new VentaApplicationException(
+          'Para ventas en cuenta corriente es obligatorio informar el DNI del cliente',
+        );
+      }
+
+      // 1. Validar que todos los productos existan y tengan stock
+      const detalles: DetalleVenta[] = [];
+      if (dto.items && dto.items.length > 0) {
+        const productoIds = dto.items.map((item) => item.productoId);
+        const productos = await this.productoRepository.findByIds(productoIds);
+
+        if (productos.length !== productoIds.length) {
+          throw new VentaApplicationException('Algunos productos no fueron encontrados', 404);
         }
-        return item.productoId;
+
+        const productosMap = new Map(productos.map((p) => [p.id!, p]));
+
+        for (const item of dto.items) {
+          const producto = productosMap.get(item.productoId);
+          if (!producto || !producto.activo) {
+            throw new VentaApplicationException(`Producto ${producto?.nombre || item.productoId} no encontrado o inactivo`);
+          }
+
+          if (!producto.tieneStockSuficiente(item.cantidad)) {
+            throw new VentaApplicationException(`Stock insuficiente para ${producto.nombre}`);
+          }
+
+          detalles.push(DetalleVenta.crear({
+            productoId: producto.id!,
+            codigoProducto: producto.codigo,
+            nombreProducto: producto.nombre,
+            cantidad: item.cantidad,
+            precioUnitario: item.precioUnitario || producto.precioVenta,
+            descuentoItem: item.descuentoItem || 0,
+          }));
+        }
+      }
+
+      // 2. Crear métodos de pago
+      const metodosPago: MetodoPago[] = dto.metodosPago.map((mp) => {
+        switch (mp.tipo) {
+          case TipoMetodoPago.EFECTIVO: return MetodoPago.efectivo(mp.monto);
+          case TipoMetodoPago.TARJETA: return MetodoPago.tarjeta(mp.monto, mp.referencia!);
+          case TipoMetodoPago.TRANSFERENCIA: return MetodoPago.transferencia(mp.monto, mp.referencia!, mp.cuentaBancaria!);
+          case TipoMetodoPago.DEBITO: return MetodoPago.debito(mp.monto, mp.recargo);
+          case TipoMetodoPago.CREDITO: return MetodoPago.credito(mp.monto, dto.recargoCredito || 10);
+          case TipoMetodoPago.CUENTA_CORRIENTE: return MetodoPago.cuentaCorriente(mp.monto);
+          default: throw new VentaApplicationException(`Método de pago no válido: ${mp.tipo}`);
+        }
       });
 
-      // OPTIMIZACIÓN: Cargar todos los productos en un solo query (paralelo)
-      const productos = await this.productoRepository.findByIds(productoIds);
+      const tipoComprobante = dto.tipoComprobante || TipoComprobante.REMITO;
+      const esPresupuesto = tipoComprobante === TipoComprobante.PRESUPUESTO;
+      const numeroVenta = this.generarNumeroVentaUnico(tipoComprobante);
 
-      // Validar que todos los productos existan
-      if (productos.length !== productoIds.length) {
-        const productosEncontrados = new Set(productos.map((p) => p.id));
-        const productosFaltantes = productoIds.filter((id) => !productosEncontrados.has(id));
-        throw new VentaApplicationException(
-          `Productos no encontrados: ${productosFaltantes.join(', ')}`,
-          404,
-          'PRODUCTO_NO_ENCONTRADO',
-        );
+      const venta = Venta.crear({
+        vendedorId,
+        detalles,
+        metodosPago,
+        clienteNombre: dto.clienteNombre,
+        clienteDNI: dto.clienteDNI,
+        descuentoGeneral: dto.descuentoGeneral || 0,
+        observaciones: dto.observaciones,
+        tipoComprobante,
+        esCuentaCorriente: dto.esCuentaCorriente || false,
+        recargoCredito: dto.recargoCredito || 0,
+        estado: esPresupuesto ? EstadoVenta.BORRADOR : EstadoVenta.COMPLETADA,
+        numero: numeroVenta,
+      });
+
+      const ventaGuardada = await this.ventaRepository.save(venta, { session: session.inTransaction() ? session : undefined });
+
+      if (!esPresupuesto && detalles.length > 0) {
+        await Promise.all(detalles.map((detalle) =>
+          this.registrarVentaStockUseCase.execute(detalle.productoId, detalle.cantidad, ventaGuardada.id!, vendedorId, { session: session.inTransaction() ? session : undefined })
+        ));
       }
 
-      // Crear un mapa para acceso rápido O(1)
-      const productosMap = new Map(productos.map((p) => [p.id!, p]));
+      await this.registrarAuditoriaUseCase.execute({
+        entidad: 'venta',
+        entidadId: ventaGuardada.id!,
+        evento: TipoEventoAuditoria.CREACION,
+        snapshot: ventaGuardada,
+        usuarioId: vendedorId,
+      }, { session: session.inTransaction() ? session : undefined });
 
-      // Validar y crear detalles (síncrono, ya tenemos todos los productos)
-      for (const item of dto.items) {
-        const producto = productosMap.get(item.productoId);
+      if (!esPresupuesto) {
+        await this.registrarMovimientoVentaUseCase.execute({ venta: ventaGuardada, tipoEvento: TipoEventoVenta.CREACION, usuarioId: vendedorId }, { session: session.inTransaction() ? session : undefined });
 
-        if (!producto) {
-          throw new VentaApplicationException(
-            `Producto con ID ${item.productoId} no encontrado`,
-            404,
-            'PRODUCTO_NO_ENCONTRADO',
-          );
+        if (ventaGuardada.esCuentaCorriente && dto.clienteDNI) {
+          await this.registrarMovimientoCCVentaUseCase.ejecutarCargoPorVenta({ venta: ventaGuardada, clienteDNI: dto.clienteDNI, usuarioId: vendedorId }, { session: session.inTransaction() ? session : undefined });
         }
+      }
 
-        if (!producto.activo) {
-          throw new VentaApplicationException(
-            `El producto ${producto.nombre} está inactivo`,
-          );
-        }
+      return ventaGuardada;
+    };
 
-        if (!producto.tieneStockSuficiente(item.cantidad)) {
-          throw new VentaApplicationException(
-            `Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stockActual}, Solicitado: ${item.cantidad}`,
-          );
-        }
-
-        const precioFinal = item.precioUnitario || producto.precioVenta;
-
-        const detalle = DetalleVenta.crear({
-          productoId: producto.id!,
-          codigoProducto: producto.codigo,
-          nombreProducto: producto.nombre,
-          cantidad: item.cantidad,
-          precioUnitario: precioFinal,
-          descuentoItem: item.descuentoItem || 0,
+    try {
+      let result: Venta | undefined;
+      try {
+        await session.withTransaction(async () => {
+          result = await runInTransaction();
         });
-
-        detalles.push(detalle);
+      } catch (error: any) {
+        // Si falla porque no hay replica set, intentamos sin transacción
+        if (error.message.includes('Transaction numbers are only allowed on a replica set member')) {
+          console.warn('⚠️ MongoDB no es un Replica Set. Ejecutando sin transacciones...');
+          result = await runInTransaction();
+        } else {
+          throw error;
+        }
       }
+
+      if (result && (dto.tipoComprobante !== TipoComprobante.PRESUPUESTO)) {
+        // En desarrollo, simplemente dejamos que el caché expire o limpiamos lo necesario
+        // Por ahora, para evitar errores de tipos con diferentes versiones de cache-manager
+        const hoy = new Date();
+        const fechaKey = `${hoy.getFullYear()}-${hoy.getMonth() + 1}-${hoy.getDate()}`;
+        await this.cacheManager.del(`productos:all:all:50:0`); // Limpiar primera página por si acaso
+        await this.cacheManager.del(`ventas:${fechaKey}:all`);
+      }
+
+      return result!;
+    } finally {
+      await session.endSession();
     }
-
-    // 2. Crear métodos de pago
-    const metodosPago: MetodoPago[] = dto.metodosPago.map((mp) => {
-      switch (mp.tipo) {
-        case TipoMetodoPago.EFECTIVO:
-          return MetodoPago.efectivo(mp.monto);
-        
-        case TipoMetodoPago.TARJETA:
-          if (!mp.referencia) {
-            throw new VentaApplicationException(
-              'El método de pago TARJETA requiere referencia',
-            );
-          }
-          return MetodoPago.tarjeta(mp.monto, mp.referencia);
-        
-        case TipoMetodoPago.TRANSFERENCIA:
-          // Generar referencia automática si no se proporciona (para ventas simples)
-          const referenciaTransferencia = mp.referencia || `TRF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          if (!mp.cuentaBancaria) {
-            throw new VentaApplicationException(
-              'El método de pago TRANSFERENCIA requiere especificar la cuenta bancaria',
-            );
-          }
-          return MetodoPago.transferencia(
-            mp.monto,
-            referenciaTransferencia,
-            mp.cuentaBancaria,
-          );
-        
-        case TipoMetodoPago.DEBITO:
-          // Débito puede tener recargo del 5% opcionalmente
-          const recargoDebito = mp.recargo || 0; // 0 por defecto, 5% si se especifica
-          return MetodoPago.debito(mp.monto, recargoDebito > 0 ? recargoDebito : undefined);
-        
-        case TipoMetodoPago.CREDITO:
-          // Crédito siempre lleva 10% (puede cambiarse manualmente)
-          const recargoCredito = dto.recargoCredito || 10; // Por defecto 10%
-          return MetodoPago.credito(mp.monto, recargoCredito);
-        
-        case TipoMetodoPago.CUENTA_CORRIENTE:
-          return MetodoPago.cuentaCorriente(mp.monto);
-        
-        default:
-          throw new VentaApplicationException(
-            `Método de pago no válido: ${mp.tipo}`,
-          );
-      }
-    });
-
-    // 3. Validar tipo de comprobante (REMITO por defecto, ya que es el más usado - 80%)
-    const tipoComprobante = dto.tipoComprobante || TipoComprobante.REMITO;
-    
-    // Si es PRESUPUESTO, NO se descontará stock ni se guardará como venta real
-    const esPresupuesto = tipoComprobante === TipoComprobante.PRESUPUESTO;
-
-    // 4. Crear la venta con verificación de número único
-    let venta: Venta;
-    let intentos = 0;
-    const maxIntentos = 10;
-    let numeroVenta: string | undefined;
-    
-    do {
-      // Generar número solo si no se ha generado uno único aún
-      if (!numeroVenta) {
-        numeroVenta = this.generarNumeroVentaUnico(tipoComprobante);
-      }
-      
-      // Verificar si el número ya existe
-      const ventaExistente = await this.ventaRepository.findByNumero(numeroVenta);
-      if (!ventaExistente) {
-        break; // Número único, continuar
-      }
-      
-      intentos++;
-      if (intentos >= maxIntentos) {
-        throw new VentaApplicationException(
-          `No se pudo generar un número de venta único después de ${maxIntentos} intentos`,
-        );
-      }
-      
-      // Generar un nuevo número con un pequeño delay para cambiar el timestamp
-      await new Promise(resolve => setTimeout(resolve, 1));
-      numeroVenta = this.generarNumeroVentaUnico(tipoComprobante);
-    } while (intentos < maxIntentos);
-    
-    // Crear la venta con el número único generado
-    venta = Venta.crear({
-      vendedorId,
-      detalles,
-      metodosPago,
-      clienteNombre: dto.clienteNombre,
-      clienteDNI: dto.clienteDNI,
-      descuentoGeneral: dto.descuentoGeneral || 0,
-      observaciones: dto.observaciones,
-      tipoComprobante,
-      esCuentaCorriente: dto.esCuentaCorriente || false,
-      recargoCredito: dto.recargoCredito || 0,
-      estado: esPresupuesto ? EstadoVenta.BORRADOR : EstadoVenta.COMPLETADA,
-      numero: numeroVenta,
-    });
-
-    // 6. Guardar la venta (o presupuesto) primero para obtener el ID
-    const ventaGuardada = await this.ventaRepository.save(venta);
-
-    // 5. Descontar stock de cada producto SOLO si NO es presupuesto y hay detalles
-    // OPTIMIZACIÓN: Ejecutar descuentos de stock en paralelo
-    if (!esPresupuesto && detalles.length > 0) {
-      await Promise.all(
-        detalles.map((detalle) =>
-          this.registrarVentaStockUseCase.execute(
-            detalle.productoId,
-            detalle.cantidad,
-            ventaGuardada.id!,
-            vendedorId,
-          ),
-        ),
-      );
-    }
-
-    // 7. TODO: Si es cuenta corriente, actualizar saldo del cliente
-    // if (dto.esCuentaCorriente && dto.clienteDNI) {
-    //   await this.clienteRepository.actualizarSaldo(dto.clienteDNI, ventaGuardada.calcularTotal());
-    // }
-
-    // 8. Invalidar caché de ventas del día actual (solo si es venta completada)
-    if (!esPresupuesto) {
-      const hoy = new Date();
-      const año = hoy.getUTCFullYear();
-      const mes = hoy.getUTCMonth() + 1;
-      const dia = hoy.getUTCDate();
-      const fechaKey = `${año}-${mes}-${dia}`;
-      
-      // Invalidar todas las variantes de caché de ventas de hoy
-      const cacheKeys = [
-        `ventas:${fechaKey}:all`,
-        `ventas:${fechaKey}:EFECTIVO`,
-        `ventas:${fechaKey}:TARJETA`,
-        `ventas:${fechaKey}:TRANSFERENCIA`,
-      ];
-      
-      await Promise.all(cacheKeys.map(key => this.cacheManager.del(key)));
-    }
-
-    // 9. TODO: Emitir evento de dominio (VentaCreada)
-    // await this.eventBus.publish(new VentaCreadaEvent(ventaGuardada));
-
-    return ventaGuardada;
   }
 }
-

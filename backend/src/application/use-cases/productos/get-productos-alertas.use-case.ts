@@ -7,10 +7,10 @@ export class GetProductosAlertasUseCase {
   constructor(
     @Inject('IProductoRepository')
     private readonly productoRepository: IProductoRepository,
-  ) {}
+  ) { }
 
   async execute(): Promise<{ sinStock: Producto[]; stockBajo: Producto[] }> {
-    const productos = await this.productoRepository.findAll(true); // Solo activos
+    const { data: productos } = await this.productoRepository.findAll(true); // Solo activos
 
     const sinStock = productos.filter((p) => p.stockActual === 0);
     const stockBajo = productos.filter(

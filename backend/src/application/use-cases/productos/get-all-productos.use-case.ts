@@ -10,18 +10,16 @@ export class GetAllProductosUseCase {
     @Inject('IProductoRepository')
     private readonly productoRepository: IProductoRepository,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
-  ) {}
+  ) { }
 
-  async execute(activos?: boolean): Promise<Producto[]> {
+  async execute(activos?: boolean, limit: number = 0, skip: number = 0): Promise<{ data: Producto[], total: number }> {
     // Generar clave de caché única por parámetros
-    const cacheKey = `productos:all:${activos ?? 'all'}`;
-    
+    const cacheKey = `productos:all:${activos ?? 'all'}:${limit}:${skip}`;
+
     // Intentar obtener del caché
-    const cached = await this.cacheManager.get<Producto[]>(cacheKey);
+    const cached = await this.cacheManager.get<{ data: Producto[], total: number }>(cacheKey);
     if (cached) {
-      // Si el caché tiene un array vacío, puede ser un cache miss anterior
-      // Invalidar y buscar de nuevo
-      if (cached.length === 0) {
+      if (cached.data.length === 0 && skip === 0) {
         await this.cacheManager.del(cacheKey);
       } else {
         return cached;
@@ -29,14 +27,14 @@ export class GetAllProductosUseCase {
     }
 
     // Si no está en caché, obtener de la BD
-    const productos = await this.productoRepository.findAll(activos);
-    
+    const result = await this.productoRepository.findAll(activos, limit, skip);
+
     // Solo guardar en caché si hay productos (evitar cachear arrays vacíos)
-    if (productos.length > 0) {
-      await this.cacheManager.set(cacheKey, productos, 600);
+    if (result.data.length > 0) {
+      await this.cacheManager.set(cacheKey, result, 600);
     }
-    
-    return productos;
+
+    return result;
   }
 }
 

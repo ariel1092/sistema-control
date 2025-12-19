@@ -23,7 +23,7 @@ function Layout({ children }: LayoutProps) {
   return (
     <div className="layout-container">
       {/* Botón Hamburger para móviles */}
-      <button 
+      <button
         className="mobile-menu-toggle"
         onClick={toggleSidebar}
         aria-label="Toggle menu"
@@ -44,9 +44,9 @@ function Layout({ children }: LayoutProps) {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo-container">
-            <img 
-              src="/logo.png" 
-              alt="Ferretería San Geronimo" 
+            <img
+              src="/logo.png"
+              alt="Ferretería San Geronimo"
               className="sidebar-logo-img"
               onError={(e) => {
                 // Si no existe el logo, mostrar texto
@@ -60,56 +60,64 @@ function Layout({ children }: LayoutProps) {
             ✕
           </button>
         </div>
-        
+
         <nav className="sidebar-nav">
-          <NavLink 
-            to="/" 
-            end 
+          <NavLink
+            to="/"
+            end
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
             <span className="nav-icon">📊</span>
             <span className="nav-text">Dashboard</span>
           </NavLink>
-          
-          <NavLink 
-            to="/ventas" 
+
+          <NavLink
+            to="/ventas/nueva"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={closeSidebar}
+          >
+            <span className="nav-icon">🛒</span>
+            <span className="nav-text">Nueva Venta</span>
+          </NavLink>
+          <NavLink
+            to="/ventas"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
             <span className="nav-icon">💰</span>
             <span className="nav-text">Ventas</span>
           </NavLink>
-          
-          <NavLink 
-            to="/productos" 
+
+          <NavLink
+            to="/productos"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
             <span className="nav-icon">📦</span>
             <span className="nav-text">Productos</span>
           </NavLink>
-          
-          <NavLink 
-            to="/caja" 
+
+          <NavLink
+            to="/caja"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
             <span className="nav-icon">💵</span>
             <span className="nav-text">Caja</span>
           </NavLink>
-          
-          <NavLink 
-            to="/clientes" 
+
+          <NavLink
+            to="/clientes"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
             <span className="nav-icon">👥</span>
             <span className="nav-text">Clientes</span>
           </NavLink>
-          
-          <NavLink 
-            to="/empleados" 
+
+          <NavLink
+            to="/empleados"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
@@ -117,8 +125,8 @@ function Layout({ children }: LayoutProps) {
             <span className="nav-text">Empleados</span>
           </NavLink>
 
-          <NavLink 
-            to="/gastos" 
+          <NavLink
+            to="/gastos"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
@@ -126,8 +134,8 @@ function Layout({ children }: LayoutProps) {
             <span className="nav-text">Gastos Diarios</span>
           </NavLink>
 
-          <NavLink 
-            to="/reportes" 
+          <NavLink
+            to="/reportes"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
@@ -135,8 +143,8 @@ function Layout({ children }: LayoutProps) {
             <span className="nav-text">Reportes</span>
           </NavLink>
 
-          <NavLink 
-            to="/proveedores" 
+          <NavLink
+            to="/proveedores"
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             onClick={closeSidebar}
           >
@@ -151,7 +159,7 @@ function Layout({ children }: LayoutProps) {
             <span className="sidebar-user-name">{user?.nombre || user?.email || 'Usuario'}</span>
             <span className="sidebar-user-role">{user?.rol || 'Usuario'}</span>
           </div>
-          <button 
+          <button
             className="sidebar-logout"
             onClick={() => {
               logout();

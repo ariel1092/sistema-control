@@ -6,6 +6,10 @@ export enum TipoMovimientoCC {
   PAGO_PARCIAL = 'PAGO_PARCIAL',
   PAGO_COMPLETO = 'PAGO_COMPLETO',
   GASTO = 'GASTO',
+  CARGO = 'CARGO',
+  REVERSO = 'REVERSO',
+  PAGO = 'PAGO',
+  VENTA = 'VENTA', // Deprecated: Kept for backward compatibility
 }
 
 

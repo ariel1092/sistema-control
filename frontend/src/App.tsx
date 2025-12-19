@@ -7,6 +7,7 @@ import './App.css';
 // OPTIMIZACIÓN: Lazy loading de páginas para code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const VentasPage = lazy(() => import('./pages/VentasPage'));
+const NuevaVentaPage = lazy(() => import('./pages/NuevaVentaPage'));
 const ProductosPage = lazy(() => import('./pages/ProductosPage'));
 const CajaPage = lazy(() => import('./pages/CajaPage'));
 const ClientesPage = lazy(() => import('./pages/ClientesPage'));
@@ -21,10 +22,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '100vh',
         fontSize: '18px',
         color: '#6b7280'
@@ -43,10 +44,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // Componente de loading para Suspense
 const PageLoader = () => (
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
     minHeight: '50vh',
     fontSize: '18px',
     color: '#6b7280'
@@ -69,6 +70,7 @@ function AppRoutes() {
                   <Routes>
                     <Route path="/" element={<DashboardPage />} />
                     <Route path="/ventas" element={<VentasPage />} />
+                    <Route path="/ventas/nueva" element={<NuevaVentaPage />} />
                     <Route path="/productos" element={<ProductosPage />} />
                     <Route path="/caja" element={<CajaPage />} />
                     <Route path="/clientes" element={<ClientesPage />} />

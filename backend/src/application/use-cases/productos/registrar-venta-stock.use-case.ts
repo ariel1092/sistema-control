@@ -11,14 +11,16 @@ export class RegistrarVentaStockUseCase {
     private readonly productoRepository: IProductoRepository,
     @Inject('IMovimientoStockRepository')
     private readonly movimientoStockRepository: IMovimientoStockRepository,
-  ) {}
+  ) { }
 
   async execute(
     productId: string,
     quantity: number,
     ventaId: string,
     userId: string,
+    options?: { session?: any },
   ): Promise<MovimientoStock> {
+    const session = options?.session;
     const producto = await this.productoRepository.findById(productId);
     if (!producto) {
       throw new Error(`Producto con ID ${productId} no encontrado`);
@@ -26,7 +28,7 @@ export class RegistrarVentaStockUseCase {
 
     // Descontar stock
     producto.descontar(quantity);
-    await this.productoRepository.save(producto);
+    await this.productoRepository.save(producto, { session });
 
     // Registrar movimiento de venta
     const movimiento = MovimientoStock.crear({
@@ -38,7 +40,7 @@ export class RegistrarVentaStockUseCase {
       ventaId: ventaId,
     });
 
-    return await this.movimientoStockRepository.save(movimiento);
+    return await this.movimientoStockRepository.save(movimiento, { session });
   }
 
   async revertirVenta(
@@ -46,7 +48,9 @@ export class RegistrarVentaStockUseCase {
     quantity: number,
     ventaId: string,
     userId: string,
+    options?: { session?: any },
   ): Promise<MovimientoStock> {
+    const session = options?.session;
     const producto = await this.productoRepository.findById(productId);
     if (!producto) {
       throw new Error(`Producto con ID ${productId} no encontrado`);
@@ -54,7 +58,7 @@ export class RegistrarVentaStockUseCase {
 
     // Reponer stock
     producto.reponer(quantity);
-    await this.productoRepository.save(producto);
+    await this.productoRepository.save(producto, { session });
 
     // Registrar movimiento de cancelación
     const movimiento = MovimientoStock.crear({
@@ -66,7 +70,7 @@ export class RegistrarVentaStockUseCase {
       ventaId: ventaId,
     });
 
-    return await this.movimientoStockRepository.save(movimiento);
+    return await this.movimientoStockRepository.save(movimiento, { session });
   }
 }
 
