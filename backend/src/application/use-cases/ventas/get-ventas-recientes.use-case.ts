@@ -42,10 +42,19 @@ export class GetVentasRecientesUseCase {
       fechaFin,
     );
 
-    // Filtrar solo ventas completadas
-    let ventasFiltradas = ventas.filter(
+    // Filtrar solo ventas completadas y deduplicar por id (defensivo)
+    const ventasCompletadas = ventas.filter(
       (v) => v.estado === EstadoVenta.COMPLETADA,
     );
+
+    const ventasMap = new Map<string, Venta>();
+    ventasCompletadas.forEach((v) => {
+      if (v?.id && !ventasMap.has(v.id)) {
+        ventasMap.set(v.id, v);
+      }
+    });
+
+    let ventasFiltradas = Array.from(ventasMap.values());
 
     // Filtrar por tipo de método de pago si se especifica
     if (tipoMetodoPago) {

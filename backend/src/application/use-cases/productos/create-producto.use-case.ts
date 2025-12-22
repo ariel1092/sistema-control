@@ -33,6 +33,7 @@ export class CreateProductoUseCase {
       codigo: dto.codigo,
       nombre: dto.nombre,
       categoria: dto.categoria,
+      proveedorId: dto.proveedorId,
       precioVenta: dto.precioVenta,
       stockActual: dto.stockActual,
       stockMinimo: dto.stockMinimo,
@@ -41,6 +42,8 @@ export class CreateProductoUseCase {
       marca: dto.marca,
       precioCosto: dto.precioCosto,
       codigoBarras: dto.codigoBarras,
+      descuento: dto.descuento,
+      iva: dto.iva,
       activo: dto.activo !== undefined ? dto.activo : true,
     });
 

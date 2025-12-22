@@ -11,6 +11,9 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({ onClientSelect, 
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [clientBalance, setClientBalance] = useState<number | null>(null);
+    const [loadingClients, setLoadingClients] = useState(false);
+    const [allClients, setAllClients] = useState<any[]>([]);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (mode === 'FINAL') {
@@ -29,20 +32,35 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({ onClientSelect, 
         }
     }, [selectedClient]);
 
-    // Simple client search simulation (filtering all)
-    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cargarClientes = async () => {
+        if (allClients.length > 0 || loadingClients) return;
+        try {
+            setLoadingClients(true);
+            const res = await clientesApi.obtenerTodos();
+            const lista = Array.isArray(res.data) ? res.data : [];
+            setAllClients(lista);
+        } catch (e) {
+            setError('No se pudieron cargar los clientes');
+        } finally {
+            setLoadingClients(false);
+        }
+    };
+
+    const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const term = e.target.value;
         setSearchTerm(term);
+        setError(null);
 
-        if (term.length >= 3) {
-            clientesApi.obtenerTodos().then(res => {
-                const all = Array.isArray(res.data) ? res.data : [];
-                const filtered = all.filter((c: any) =>
-                    c.nombre.toLowerCase().includes(term.toLowerCase()) ||
-                    c.dni.includes(term)
-                );
-                setSearchResults(filtered);
-            });
+        if (mode === 'REGISTERED' && allClients.length === 0 && term.length >= 2) {
+            await cargarClientes();
+        }
+
+        if (term.length >= 2) {
+            const filtered = allClients.filter((c: any) =>
+                `${c.nombre} ${c.apellido}`.toLowerCase().includes(term.toLowerCase()) ||
+                c.dni?.toString().includes(term)
+            );
+            setSearchResults(filtered.slice(0, 10)); // limitar para UI
         } else {
             setSearchResults([]);
         }
@@ -74,19 +92,44 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({ onClientSelect, 
             <div className="client-content">
                 {mode === 'REGISTERED' && !selectedClient && (
                     <div className="client-search-box">
+                        <div className="client-search-header">
+                            <div>
+                                <p className="client-search-title">Cliente Registrado</p>
+                                <p className="client-search-subtitle">Escriba DNI o nombre (mínimo 2 caracteres)</p>
+                            </div>
+                            {loadingClients && <span className="client-pill pill-loading">Cargando...</span>}
+                            {error && <span className="client-pill pill-error">{error}</span>}
+                        </div>
+                        <div className="client-helper-banner">
+                            <div className="helper-title">Pasos rápidos</div>
+                            <div className="helper-steps">
+                                <span>1. Escriba DNI o nombre.</span>
+                                <span>2. Toque el resultado para seleccionarlo.</span>
+                                <span>3. Verifique datos y continúe.</span>
+                            </div>
+                        </div>
                         <input
                             type="text"
-                            className="pos-input"
-                            placeholder="Buscar por Nombre o DNI..."
+                            className="pos-input client-search-input"
+                            placeholder="Ej: 30123123 o Juan"
                             value={searchTerm}
                             onChange={handleSearch}
+                            onFocus={() => mode === 'REGISTERED' && cargarClientes()}
                         />
+                        {searchTerm.length >= 2 && !loadingClients && searchResults.length === 0 && (
+                            <div className="client-empty-state">Sin resultados</div>
+                        )}
                         {searchResults.length > 0 && (
                             <ul className="client-results-list">
                                 {searchResults.map(c => (
-                                    <li key={c.id} onClick={() => handleSelect(c)}>
-                                        <strong>{c.nombre} {c.apellido}</strong>
-                                        <span className="dni">{c.dni}</span>
+                                    <li key={c.id} onClick={() => handleSelect(c)} className="client-result-item">
+                                        <div className="client-result-main">
+                                            <div className="client-name">{c.nombre} {c.apellido}</div>
+                                            <div className="client-dni">DNI: {c.dni}</div>
+                                        </div>
+                                        {c.tieneCuentaCorriente && (
+                                            <span className="client-pill pill-cc">Cuenta Corriente</span>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
@@ -96,21 +139,24 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({ onClientSelect, 
 
                 {selectedClient && (
                     <div className="selected-client-card">
-                        <div className="card-row">
-                            <span className="label">Cliente:</span>
-                            <span className="value">{selectedClient.nombre} {selectedClient.apellido}</span>
+                        <div className="card-header">
+                            <div className="card-title">Cliente seleccionado</div>
+                            <button className="btn-link-small" onClick={() => onClientSelect(null)}>Cambiar</button>
                         </div>
                         <div className="card-row">
-                            <span className="label">DNI:</span>
+                            <span className="label">Nombre</span>
+                            <span className="value strong">{selectedClient.nombre} {selectedClient.apellido}</span>
+                        </div>
+                        <div className="card-row">
+                            <span className="label">DNI</span>
                             <span className="value">{selectedClient.dni}</span>
                         </div>
                         {selectedClient.tieneCuentaCorriente && (
                             <div className={`card-row balance-row ${clientBalance && clientBalance > 0 ? 'debt' : ''}`}>
-                                <span className="label">Saldo CC:</span>
-                                <span className="value">${clientBalance}</span>
+                                <span className="label">Saldo Cuenta Corriente</span>
+                                <span className="value strong">${clientBalance}</span>
                             </div>
                         )}
-                        <button className="btn-link-small" onClick={() => onClientSelect(null)}>Cambiar Cliente</button>
                     </div>
                 )}
             </div>

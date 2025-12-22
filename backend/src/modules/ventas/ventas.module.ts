@@ -16,6 +16,9 @@ import { RegistrarMovimientoCCVentaUseCase } from '../../application/use-cases/v
 import { ClientesModule } from '../clientes/clientes.module';
 import { AuditoriaModule } from '../auditoria/auditoria.module';
 import { CancelarVentaUseCase } from '../../application/use-cases/ventas/cancelar-venta.use-case';
+import { CajaModule } from '../caja/caja.module';
+import { RegistrarMovimientosCajaVentaUseCase } from '../../application/use-cases/caja/registrar-movimientos-caja-venta.use-case';
+import { ConfiguracionModule } from '../configuracion/configuracion.module';
 
 @Module({
   imports: [
@@ -27,6 +30,8 @@ import { CancelarVentaUseCase } from '../../application/use-cases/ventas/cancela
     ProductosModule,
     ClientesModule,
     AuditoriaModule,
+    CajaModule,
+    ConfiguracionModule,
   ],
   controllers: [VentasController],
   providers: [
@@ -45,6 +50,7 @@ import { CancelarVentaUseCase } from '../../application/use-cases/ventas/cancela
     CancelarVentaUseCase,
     RegistrarMovimientoVentaUseCase,
     RegistrarMovimientoCCVentaUseCase,
+    RegistrarMovimientosCajaVentaUseCase,
   ],
   exports: ['IVentaRepository', GetVentasDiaUseCase, GetVentasRecientesUseCase],
 })

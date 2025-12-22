@@ -2,10 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { cajaApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { formatearMoneda } from '../utils/formatters';
+import Loading from '../components/common/Loading';
 import './CajaPage.css';
 
 interface ResumenCaja {
   id?: string;
+  existeCaja: boolean;
   fecha: string;
   estado: 'ABIERTO' | 'CERRADO';
   totalEfectivo: number;
@@ -23,6 +26,11 @@ function CajaPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Compat: si el backend aún no envía existeCaja, asumimos true para no romper UI.
+  const existeCaja = (resumen as any)?.existeCaja ?? true;
+  const cajaInexistente = Boolean(resumen && existeCaja === false);
+  const cajaAbierta = Boolean(resumen && existeCaja === true && resumen.estado === 'ABIERTO');
   
   // Estados para modales
   const [mostrarAbrirCaja, setMostrarAbrirCaja] = useState(false);
@@ -179,14 +187,6 @@ function CajaPage() {
     }
   }, [mostrarHistorial, fechaInicioHistorial, fechaFinHistorial]);
 
-  const formatearMonto = (monto: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(monto);
-  };
-
   const calcularDiferencia = () => {
     if (!resumen || !montoFinal) return 0;
     const esperado = resumen.totalEfectivo;
@@ -196,6 +196,7 @@ function CajaPage() {
 
   return (
     <div className="caja-page">
+      {loading && resumen && <Loading fullScreen mensaje="Procesando..." />}
       <div className="caja-header">
         <h1 className="page-title">💰 Control de Caja</h1>
         <p className="page-subtitle">Gestión de apertura, cierre y movimientos de caja</p>
@@ -227,7 +228,15 @@ function CajaPage() {
           />
         </div>
         <div className="control-buttons">
-          {resumen?.estado === 'ABIERTO' ? (
+          {cajaInexistente ? (
+            <button
+              className="btn btn-success"
+              onClick={() => setMostrarAbrirCaja(true)}
+              disabled={loading}
+            >
+              🔓 Abrir Caja
+            </button>
+          ) : cajaAbierta ? (
             <>
               <button
                 className="btn btn-danger"
@@ -253,18 +262,32 @@ function CajaPage() {
               🔓 Abrir Caja
             </button>
           )}
-          <button
-            className="btn btn-info"
-            onClick={() => setMostrarHistorial(true)}
-            disabled={loading}
-          >
-            📋 Historial
-          </button>
+          {!cajaInexistente && (
+            <button
+              className="btn btn-info"
+              onClick={() => setMostrarHistorial(true)}
+              disabled={loading}
+            >
+              📋 Historial
+            </button>
+          )}
         </div>
       </div>
 
       {/* Estado de Caja */}
-      {resumen && (
+      {resumen && cajaInexistente && (
+        <div className="caja-status-card">
+          <div className="status-header">
+            <div className="status-badge status-cerrado">🔒 NO ABIERTA</div>
+            <span className="status-date">{format(new Date(resumen.fecha), 'dd/MM/yyyy')}</span>
+          </div>
+          <p className="page-subtitle" style={{ marginTop: 12 }}>
+            La caja del día no fue abierta
+          </p>
+        </div>
+      )}
+
+      {resumen && !cajaInexistente && (
         <div className="caja-status-card">
           <div className="status-header">
             <div className={`status-badge status-${resumen.estado.toLowerCase()}`}>
@@ -276,7 +299,7 @@ function CajaPage() {
       )}
 
       {/* Arqueo / Resumen */}
-      {resumen && (
+      {resumen && !cajaInexistente && (
         <div className="caja-resumen-section">
           <h2 className="section-title">📊 Arqueo del Día</h2>
           <div className="resumen-grid">
@@ -284,21 +307,21 @@ function CajaPage() {
               <div className="card-icon">💵</div>
               <div className="card-content">
                 <div className="card-label">Efectivo</div>
-                <div className="card-value">{formatearMonto(resumen.totalEfectivo)}</div>
+                <div className="card-value">{formatearMoneda(resumen.totalEfectivo)}</div>
               </div>
             </div>
             <div className="resumen-card tarjeta">
               <div className="card-icon">💳</div>
               <div className="card-content">
                 <div className="card-label">Tarjeta/Transferencia</div>
-                <div className="card-value">{formatearMonto(resumen.totalTarjeta + resumen.totalTransferencia)}</div>
+                <div className="card-value">{formatearMoneda(resumen.totalTarjeta + resumen.totalTransferencia)}</div>
               </div>
             </div>
             <div className="resumen-card total">
               <div className="card-icon">💰</div>
               <div className="card-content">
                 <div className="card-label">Total General</div>
-                <div className="card-value">{formatearMonto(resumen.totalGeneral)}</div>
+                <div className="card-value">{formatearMoneda(resumen.totalGeneral)}</div>
               </div>
             </div>
             <div className="resumen-card ventas">
@@ -356,7 +379,7 @@ function CajaPage() {
               <div className="info-box">
                 <div className="info-item">
                   <span className="info-label">Total Esperado (Efectivo):</span>
-                  <span className="info-value">{formatearMonto(resumen?.totalEfectivo || 0)}</span>
+                  <span className="info-value">{formatearMoneda(resumen?.totalEfectivo || 0)}</span>
                 </div>
               </div>
               <div className="form-group">
@@ -372,7 +395,7 @@ function CajaPage() {
               {montoFinal && parseFloat(montoFinal) > 0 && (
                 <div className={`diferencia-box ${calcularDiferencia() >= 0 ? 'positiva' : 'negativa'}`}>
                   <span className="diferencia-label">Diferencia:</span>
-                  <span className="diferencia-value">{formatearMonto(calcularDiferencia())}</span>
+                  <span className="diferencia-value">{formatearMoneda(calcularDiferencia())}</span>
                 </div>
               )}
               <div className="form-group">
@@ -483,7 +506,7 @@ function CajaPage() {
       )}
 
       {/* Modal Historial */}
-      {mostrarHistorial && (
+      {mostrarHistorial && !cajaInexistente && (
         <div className="modal-overlay modal-large" onClick={() => setMostrarHistorial(false)}>
           <div className="modal-content modal-large-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -541,9 +564,9 @@ function CajaPage() {
                               {item.estado}
                             </span>
                           </td>
-                          <td>{formatearMonto(item.totalEfectivo)}</td>
-                          <td>{formatearMonto(item.totalTarjeta + item.totalTransferencia)}</td>
-                          <td className="font-bold">{formatearMonto(item.totalGeneral)}</td>
+                          <td>{formatearMoneda(item.totalEfectivo)}</td>
+                          <td>{formatearMoneda(item.totalTarjeta + item.totalTransferencia)}</td>
+                          <td className="font-bold">{formatearMoneda(item.totalGeneral)}</td>
                           <td>{item.cantidadVentas}</td>
                           <td>{item.movimientos?.length || 0}</td>
                         </tr>
@@ -563,9 +586,7 @@ function CajaPage() {
       )}
 
       {loading && !resumen && (
-        <div className="loading-container">
-          <div className="loading-spinner">Cargando...</div>
-        </div>
+        <Loading mensaje="Cargando información de caja..." />
       )}
     </div>
   );

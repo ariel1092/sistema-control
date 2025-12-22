@@ -21,6 +21,27 @@ export class VentaMapper {
       DetalleVentaMapper.toDomain(det, ventaDoc._id.toString()),
     );
 
+    /**
+     * Compat legacy (P0):
+     * Hay ventas históricas donde:
+     * - `metodosPago.recargo` viene cargado (débito/crédito),
+     * - pero `metodosPago.monto` NO incluye ese recargo (monto == subtotal base).
+     *
+     * Con el nuevo modelo (monto final + recargo%), esas ventas no cumplen la invariante
+     * "sum(pagos) == total(venta)" y rompen reportes al construir la entidad.
+     *
+     * Heurística segura:
+     * - Si sum(pagos) ~= subtotal(detalles) y hay recargos en DEBITO/CREDITO,
+     *   entonces tratamos esos recargos como 0 para mapear a dominio.
+     *   (Así los reportes reflejan el dinero efectivamente cobrado y no se rompen.)
+     */
+    const subtotalDetalles = detalles.reduce((sum, d) => sum + d.calcularSubtotal(), 0);
+    const totalPagosDoc = (ventaDoc.metodosPago || []).reduce((sum: number, mp: any) => sum + (Number(mp.monto) || 0), 0);
+    const tieneRecargosTarjeta = (ventaDoc.metodosPago || []).some((mp: any) =>
+      (String(mp.tipo) === 'DEBITO' || String(mp.tipo) === 'CREDITO') && Number(mp.recargo || 0) > 0
+    );
+    const legacyRecargoNoIncluido = tieneRecargosTarjeta && Math.abs(totalPagosDoc - subtotalDetalles) <= 0.02;
+
     // Mapear métodos de pago
     const metodosPago = ventaDoc.metodosPago.map((mp: any) => {
       switch (mp.tipo) {
@@ -35,9 +56,9 @@ export class VentaMapper {
             mp.cuentaBancaria as CuentaBancaria,
           );
         case TipoMetodoPago.DEBITO:
-          return MetodoPago.debito(mp.monto);
+          return MetodoPago.debito(mp.monto, legacyRecargoNoIncluido ? 0 : mp.recargo);
         case TipoMetodoPago.CREDITO:
-          return MetodoPago.credito(mp.monto, mp.recargo || 10);
+          return MetodoPago.credito(mp.monto, legacyRecargoNoIncluido ? 0 : (mp.recargo || 0));
         case TipoMetodoPago.CUENTA_CORRIENTE:
           return MetodoPago.cuentaCorriente(mp.monto);
         default:
@@ -87,6 +108,8 @@ export class VentaMapper {
     const ventaDoc: any = {
       numero: venta.numero,
       vendedorId: vendedorId,
+      clienteNombre: venta.clienteNombre,
+      clienteDNI: venta.clienteDNI,
       fecha: venta.fecha,
       subtotal: venta.calcularSubtotal(),
       descuentoGeneral: venta.descuentoGeneral,

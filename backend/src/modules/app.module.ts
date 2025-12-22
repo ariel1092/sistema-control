@@ -15,6 +15,9 @@ import { RetirosSociosModule } from './retiros-socios/retiros-socios.module';
 import { ProveedoresModule } from './proveedores/proveedores.module';
 import { AuthModule } from './auth/auth.module';
 import { MonitoreoModule } from './monitoreo/monitoreo.module';
+import { NumeracionFiscalModule } from './numeracion-fiscal/numeracion-fiscal.module';
+import { ComprobantesFiscalesModule } from './comprobantes-fiscales/comprobantes-fiscales.module';
+import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { HealthController } from '../presentation/controllers/health.controller';
 import { IndexController } from '../presentation/controllers/index.controller';
 
@@ -40,6 +43,9 @@ import { IndexController } from '../presentation/controllers/index.controller';
     RetirosSociosModule,
     ProveedoresModule,
     MonitoreoModule,
+    NumeracionFiscalModule,
+    ComprobantesFiscalesModule,
+    ConfiguracionModule,
   ],
   controllers: [IndexController, HealthController],
   providers: [

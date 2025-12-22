@@ -19,7 +19,7 @@ export class AuditoriaEventoRepository implements IAuditoriaEventoRepository {
 
     if (evento.id && Types.ObjectId.isValid(evento.id)) {
       const updated = await this.auditoriaModel
-        .findByIdAndUpdate(evento.id, doc, { new: true })
+        .findByIdAndUpdate(evento.id, doc, { new: true, session })
         .exec();
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return AuditoriaEventoMapper.toDomain(updated!);
@@ -37,5 +37,6 @@ export class AuditoriaEventoRepository implements IAuditoriaEventoRepository {
     return docs.map((d) => AuditoriaEventoMapper.toDomain(d));
   }
 }
+
 
 

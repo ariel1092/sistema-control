@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns'; // date-fns v3 ya hace tree-shaking automático
 import { ventasApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useGlobalLoading } from '../context/LoadingContext';
+import { formatearMoneda } from '../utils/formatters';
+import Loading from '../components/common/Loading';
 import './VentasPage.css';
 
 interface VentaReciente {
@@ -19,6 +22,7 @@ interface VentaReciente {
 
 function VentasPage() {
   const { user } = useAuth();
+  const { showLoading, hideLoading } = useGlobalLoading();
   const [efectivo, setEfectivo] = useState('');
   const [transferenciaAbdul, setTransferenciaAbdul] = useState(''); // Reutilizamos este estado para transferencias
   const [creditoDebito, setCreditoDebito] = useState('');
@@ -60,11 +64,20 @@ function VentasPage() {
       // Cargar todas las ventas del día y filtrar por tipo
       const todasLasVentas = await ventasApi.obtenerRecientes(fechaHoy);
       // La respuesta puede venir directamente como array o dentro de .data
-      const ventas = Array.isArray(todasLasVentas.data) 
-        ? todasLasVentas.data 
-        : Array.isArray(todasLasVentas) 
-          ? todasLasVentas 
+      const ventasCrudas = Array.isArray(todasLasVentas.data)
+        ? todasLasVentas.data
+        : Array.isArray(todasLasVentas)
+          ? todasLasVentas
           : [];
+
+      // Deduplicar por id para evitar ventas repetidas en UI
+      const ventasMap = new Map<string, VentaReciente>();
+      ventasCrudas.forEach((v: VentaReciente) => {
+        if (v?.id && !ventasMap.has(v.id)) {
+          ventasMap.set(v.id, v);
+        }
+      });
+      const ventas = Array.from(ventasMap.values());
 
       // Calcular totales de efectivo
       const ventasEfectivo = ventas
@@ -134,6 +147,8 @@ function VentasPage() {
       if (descuento && descuento > 0) {
         montoFinal = monto * (1 - descuento / 100);
       }
+      
+      showLoading(`Registrando venta de ${formatearMoneda(montoFinal)}...`);
 
       // Crear venta simple sin productos
       const metodoPagoData: any = {
@@ -191,6 +206,7 @@ function VentasPage() {
       setError(err.message || 'Error al registrar venta');
     } finally {
       setLoading(false);
+      hideLoading();
     }
   };
 
@@ -201,6 +217,7 @@ function VentasPage() {
 
     try {
       setLoading(true);
+      showLoading('Cancelando venta...');
       await ventasApi.cancelar(ventaId, 'Cancelada por error del usuario');
       setSuccess('Venta cancelada exitosamente');
       setTimeout(() => setSuccess(null), 3000);
@@ -216,6 +233,7 @@ function VentasPage() {
       setError(err.message || 'Error al cancelar venta');
     } finally {
       setLoading(false);
+      hideLoading();
     }
   };
 
@@ -261,14 +279,6 @@ function VentasPage() {
     setDescuentoCredito('');
   };
 
-  const formatearMonto = (monto: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(monto);
-  };
-
   const abrirModal = (tipo: string, todasLasVentas: VentaReciente[], titulo: string) => {
     setVentasModal(todasLasVentas);
     setModalAbierto(tipo);
@@ -283,13 +293,14 @@ function VentasPage() {
 
   return (
     <div className="ventas-simple-page">
+      {loading && todasVentasEfectivo.length === 0 && <Loading fullScreen mensaje="Cargando ventas..." />}
       <div className="ventas-header">
         <h1 className="page-title">💰 Registro de Ventas</h1>
         <p className="page-subtitle">Registre las ventas por método de pago</p>
         <div className="total-dia-container">
           <div className="total-dia">
             <span className="total-dia-label">Total del día:</span>
-            <span className="total-dia-monto">{formatearMonto(totalVentasDia || 0)}</span>
+            <span className="total-dia-monto">{formatearMoneda(totalVentasDia || 0)}</span>
           </div>
         </div>
       </div>
@@ -347,7 +358,7 @@ function VentasPage() {
             <div className="resumen-section">
               <div className="resumen-total">
                 <span className="resumen-label">Total del día:</span>
-                <span className="resumen-monto">{formatearMonto(resumenEfectivo)}</span>
+                <span className="resumen-monto">{formatearMoneda(resumenEfectivo)}</span>
               </div>
 
               {/* Lista de ventas recientes */}
@@ -357,7 +368,7 @@ function VentasPage() {
                     {todasVentasEfectivo.slice(0, 5).map((venta) => (
                       <div key={venta.id} className="venta-item">
                         <div className="venta-info">
-                          <span className="venta-monto">{formatearMonto(venta.metodosPago?.[0]?.monto || 0)}</span>
+                          <span className="venta-monto">{formatearMoneda(venta.metodosPago?.[0]?.monto || 0)}</span>
                           <span className="venta-fecha-hora">
                             {venta.createdAt ? format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm') : 'Sin fecha'}
                           </span>
@@ -466,7 +477,7 @@ function VentasPage() {
             <div className="resumen-section">
               <div className="resumen-total">
                 <span className="resumen-label">Total del día:</span>
-                <span className="resumen-monto">{formatearMonto(resumenTransferencias)}</span>
+                <span className="resumen-monto">{formatearMoneda(resumenTransferencias)}</span>
               </div>
 
               {todasVentasTransferencias.length > 0 && (
@@ -475,7 +486,7 @@ function VentasPage() {
                     {todasVentasTransferencias.slice(0, 5).map((venta) => (
                       <div key={venta.id} className="venta-item">
                         <div className="venta-info">
-                          <span className="venta-monto">{formatearMonto(venta.metodosPago[0]?.monto || 0)}</span>
+                          <span className="venta-monto">{formatearMoneda(venta.metodosPago[0]?.monto || 0)}</span>
                           <span className="venta-tipo">{venta.metodosPago[0]?.cuentaBancaria || 'TRANSFERENCIA'}</span>
                           <span className="venta-fecha-hora">
                             {format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm')}
@@ -598,7 +609,7 @@ function VentasPage() {
             <div className="resumen-section">
               <div className="resumen-total">
                 <span className="resumen-label">Total del día:</span>
-                <span className="resumen-monto">{formatearMonto(resumenCreditoDebito)}</span>
+                <span className="resumen-monto">{formatearMoneda(resumenCreditoDebito)}</span>
               </div>
 
               {todasVentasCreditoDebito.length > 0 && (
@@ -607,7 +618,7 @@ function VentasPage() {
                     {todasVentasCreditoDebito.slice(0, 5).map((venta) => (
                       <div key={venta.id} className="venta-item">
                         <div className="venta-info">
-                          <span className="venta-monto">{formatearMonto(venta.metodosPago[0]?.monto || 0)}</span>
+                          <span className="venta-monto">{formatearMoneda(venta.metodosPago[0]?.monto || 0)}</span>
                           <span className="venta-tipo">{venta.metodosPago[0]?.tipo}</span>
                           <span className="venta-fecha-hora">
                             {format(new Date(venta.createdAt), 'dd/MM/yyyy HH:mm')}
@@ -651,7 +662,7 @@ function VentasPage() {
                 {ventasModal.map((venta) => (
                   <div key={venta.id} className="venta-item-modal">
                     <div className="venta-info-modal">
-                      <span className="venta-monto-modal">{formatearMonto(venta.metodosPago[0]?.monto || 0)}</span>
+                      <span className="venta-monto-modal">{formatearMoneda(venta.metodosPago[0]?.monto || 0)}</span>
                       {venta.metodosPago[0]?.tipo && (
                         <span className="venta-tipo-modal">{venta.metodosPago[0]?.tipo}</span>
                       )}

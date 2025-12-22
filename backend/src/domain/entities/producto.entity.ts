@@ -6,11 +6,14 @@ export class Producto {
     public readonly codigo: string,
     public readonly nombre: string,
     public readonly categoria: string,
+    public readonly proveedorId: string | undefined,
     public precioVenta: number,
     public stockActual: number,
     public stockMinimo: number,
     public readonly unidadMedida: string,
     public activo: boolean = true,
+    public descuento: number = 0,
+    public iva: number = 21,
     public readonly descripcion?: string,
     public readonly marca?: string,
     public precioCosto?: number,
@@ -111,10 +114,13 @@ export class Producto {
     codigo: string;
     nombre: string;
     categoria: string;
+    proveedorId?: string;
     precioVenta: number;
     stockActual: number;
     stockMinimo: number;
     unidadMedida: string;
+    descuento?: number;
+    iva?: number;
     descripcion?: string;
     marca?: string;
     precioCosto?: number;
@@ -126,11 +132,14 @@ export class Producto {
       params.codigo,
       params.nombre,
       params.categoria,
+      params.proveedorId,
       params.precioVenta,
       params.stockActual,
       params.stockMinimo,
       params.unidadMedida,
       params.activo !== undefined ? params.activo : true,
+      params.descuento || 0,
+      params.iva !== undefined ? params.iva : 21,
       params.descripcion,
       params.marca,
       params.precioCosto,

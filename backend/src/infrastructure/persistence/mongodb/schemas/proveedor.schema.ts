@@ -49,6 +49,9 @@ export class ProveedorMongo {
 
   @Prop({ required: false })
   descuento?: number;
+
+  @Prop({ required: true, default: 100 })
+  margenGanancia: number;
 }
 
 export const ProveedorSchema = SchemaFactory.createForClass(ProveedorMongo);

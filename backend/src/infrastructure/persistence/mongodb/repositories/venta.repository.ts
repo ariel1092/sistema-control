@@ -29,15 +29,16 @@ export class VentaRepository implements IVentaRepository {
     let ventaGuardada;
     if (venta.id) {
       ventaGuardada = await this.ventaModel
-        .findByIdAndUpdate(venta.id, ventaDoc, { new: true })
+        .findByIdAndUpdate(venta.id, ventaDoc, { new: true, session })
         .exec();
 
       // Eliminar detalles antiguos
       await this.detalleVentaModel.deleteMany({
         ventaId: new Types.ObjectId(venta.id),
-      }).exec();
+      }, { session }).exec();
     } else {
-      ventaGuardada = await this.ventaModel.create(ventaDoc);
+      const [created] = await this.ventaModel.create([ventaDoc], { session });
+      ventaGuardada = created;
     }
 
     // Guardar detalles
@@ -190,20 +191,43 @@ export class VentaRepository implements IVentaRepository {
       vendedorId: new Types.ObjectId(vendedorId),
     };
 
+    /**
+     * IMPORTANTE:
+     * - `fecha` en ventas se normaliza a 00:00 (día) para reportes.
+     * - Para ventanas cortas (anti doble-click) necesitamos filtrar por `createdAt`.
+     *
+     * Regla:
+     * - Si el rango recibido está "normalizado" (00:00..23:59) => filtrar por `fecha`.
+     * - Si NO está normalizado (incluye hora/min/seg) => filtrar por `createdAt` (preciso).
+     */
+    const esInicioDia = (d: Date) =>
+      d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0 && d.getMilliseconds() === 0;
+    const esFinDia = (d: Date) =>
+      d.getHours() === 23 && d.getMinutes() === 59 && d.getSeconds() === 59 && d.getMilliseconds() >= 0;
+
     if (desde && hasta) {
-      // Normalizar fechas a UTC
-      const inicio = new Date(Date.UTC(desde.getFullYear(), desde.getMonth(), desde.getDate(), 0, 0, 0, 0));
-      const fin = new Date(Date.UTC(hasta.getFullYear(), hasta.getMonth(), hasta.getDate(), 23, 59, 59, 999));
-      query.fecha = {
-        $gte: inicio,
-        $lte: fin,
-      };
+      const rangoNormalizado = esInicioDia(desde) && esFinDia(hasta);
+      if (rangoNormalizado) {
+        const inicio = new Date(Date.UTC(desde.getFullYear(), desde.getMonth(), desde.getDate(), 0, 0, 0, 0));
+        const fin = new Date(Date.UTC(hasta.getFullYear(), hasta.getMonth(), hasta.getDate(), 23, 59, 59, 999));
+        query.fecha = { $gte: inicio, $lte: fin };
+      } else {
+        query.createdAt = { $gte: desde, $lte: hasta };
+      }
     } else if (desde) {
-      const inicio = new Date(Date.UTC(desde.getFullYear(), desde.getMonth(), desde.getDate(), 0, 0, 0, 0));
-      query.fecha = { $gte: inicio };
+      if (esInicioDia(desde)) {
+        const inicio = new Date(Date.UTC(desde.getFullYear(), desde.getMonth(), desde.getDate(), 0, 0, 0, 0));
+        query.fecha = { $gte: inicio };
+      } else {
+        query.createdAt = { $gte: desde };
+      }
     } else if (hasta) {
-      const fin = new Date(Date.UTC(hasta.getFullYear(), hasta.getMonth(), hasta.getDate(), 23, 59, 59, 999));
-      query.fecha = { $lte: fin };
+      if (esFinDia(hasta)) {
+        const fin = new Date(Date.UTC(hasta.getFullYear(), hasta.getMonth(), hasta.getDate(), 23, 59, 59, 999));
+        query.fecha = { $lte: fin };
+      } else {
+        query.createdAt = { $lte: hasta };
+      }
     }
 
     const ventasDocs = await this.ventaModel

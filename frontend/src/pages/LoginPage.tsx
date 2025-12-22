@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import logoImg from '../assets/loading.jpg';
 import './LoginPage.css';
 
 function LoginPage() {
@@ -33,13 +34,9 @@ function LoginPage() {
           <div className="login-logo-wrapper">
             <div className="login-logo-container">
               <img 
-                src="/logo.png" 
+                src={logoImg} 
                 alt="Ferretería San Geronimo" 
                 className="login-logo"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
               />
             </div>
           </div>

@@ -22,6 +22,7 @@ export class ProveedorMapper {
       proveedorDoc.observaciones,
       proveedorDoc.plazoCuentaCorriente,
       proveedorDoc.descuento,
+      proveedorDoc.margenGanancia !== undefined ? proveedorDoc.margenGanancia : 100,
       proveedorDoc.createdAt,
       proveedorDoc.updatedAt,
     );
@@ -44,6 +45,7 @@ export class ProveedorMapper {
       observaciones: proveedor.observaciones,
       plazoCuentaCorriente: proveedor.plazoCuentaCorriente,
       descuento: proveedor.descuento,
+      margenGanancia: proveedor.margenGanancia,
     };
 
     if (proveedor.id) {

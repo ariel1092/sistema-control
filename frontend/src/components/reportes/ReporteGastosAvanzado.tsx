@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { reportesApi } from '../../services/api';
+import { formatearMoneda } from '../../utils/formatters';
 import {
   LineChart,
   Line,
@@ -78,14 +79,6 @@ function ReporteGastosAvanzado({ fechaInicio, fechaFin }: ReporteGastosAvanzadoP
     };
   }, []);
 
-  const formatearMonto = (monto: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(monto);
-  };
-
   if (loading) return <div className="loading">Cargando reporte de gastos avanzado...</div>;
   if (error) return <div className="error">{error}</div>;
   if (!data) return null;
@@ -100,14 +93,14 @@ function ReporteGastosAvanzado({ fechaInicio, fechaFin }: ReporteGastosAvanzadoP
           <div className="card-icon">💸</div>
           <div className="card-content">
             <div className="card-label">Total Gastos</div>
-            <div className="card-value gastos">{formatearMonto(data.totalGastos)}</div>
+            <div className="card-value gastos">{formatearMoneda(data.totalGastos)}</div>
           </div>
         </div>
         <div className="summary-card">
           <div className="card-icon">💰</div>
           <div className="card-content">
             <div className="card-label">Total Ingresos</div>
-            <div className="card-value ingresos">{formatearMonto(data.totalIngresos)}</div>
+            <div className="card-value ingresos">{formatearMoneda(data.totalIngresos)}</div>
           </div>
         </div>
         <div className="summary-card">
@@ -117,12 +110,12 @@ function ReporteGastosAvanzado({ fechaInicio, fechaFin }: ReporteGastosAvanzadoP
             <div className="card-value">{data.porcentajeGastos.toFixed(2)}%</div>
           </div>
         </div>
-        {data.proyeccionGastos && (
+        {typeof data.proyeccionGastos === 'number' && data.proyeccionGastos > 0 && (
           <div className="summary-card">
             <div className="card-icon">🔮</div>
             <div className="card-content">
               <div className="card-label">Proyección de Gastos</div>
-              <div className="card-value">{formatearMonto(data.proyeccionGastos)}</div>
+              <div className="card-value">{formatearMoneda(data.proyeccionGastos)}</div>
             </div>
           </div>
         )}
@@ -151,7 +144,7 @@ function ReporteGastosAvanzado({ fechaInicio, fechaFin }: ReporteGastosAvanzadoP
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatearMonto(value)} />
+              <Tooltip formatter={(value: number) => formatearMoneda(value)} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -163,7 +156,7 @@ function ReporteGastosAvanzado({ fechaInicio, fechaFin }: ReporteGastosAvanzadoP
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="mes" />
               <YAxis />
-              <Tooltip formatter={(value: number) => formatearMonto(value)} />
+              <Tooltip formatter={(value: number) => formatearMoneda(value)} />
               <Legend />
               <Bar dataKey="totalGastos" fill="#ef4444" name="Gastos" />
               <Bar dataKey="totalIngresos" fill="#10b981" name="Ingresos" />
@@ -181,7 +174,7 @@ function ReporteGastosAvanzado({ fechaInicio, fechaFin }: ReporteGastosAvanzadoP
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="fecha" />
               <YAxis />
-              <Tooltip formatter={(value: number) => formatearMonto(value)} />
+              <Tooltip formatter={(value: number) => formatearMoneda(value)} />
               <Legend />
               <Line type="monotone" dataKey="monto" stroke="#ef4444" strokeWidth={2} name="Gastos" />
             </LineChart>
@@ -209,7 +202,7 @@ function ReporteGastosAvanzado({ fechaInicio, fechaFin }: ReporteGastosAvanzadoP
                   <tr key={gasto.id}>
                     <td>{format(new Date(gasto.fecha), 'dd/MM/yyyy')}</td>
                     <td>{gasto.categoria}</td>
-                    <td>{formatearMonto(gasto.monto)}</td>
+                    <td>{formatearMoneda(gasto.monto)}</td>
                     <td>{gasto.descripcion}</td>
                     <td>{gasto.proveedor}</td>
                   </tr>

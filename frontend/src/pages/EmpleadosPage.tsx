@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { empleadosApi } from '../services/api';
+import Loading from '../components/common/Loading';
 import './EmpleadosPage.css';
 
 interface PagoEmpleado {
@@ -313,7 +314,7 @@ function EmpleadosPage() {
       )}
 
       {loading && empleados.length === 0 ? (
-        <div className="loading">Cargando empleados...</div>
+        <Loading mensaje="Cargando empleados..." />
       ) : (
         <div className="empleados-grid">
           {empleados.map((empleado) => (

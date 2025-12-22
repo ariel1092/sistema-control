@@ -13,16 +13,42 @@ export class CajaRepository implements ICajaRepository {
     private cierreCajaModel: Model<CierreCajaDocument>,
   ) {}
 
-  async save(cierreCaja: CierreCaja): Promise<CierreCaja> {
+  private buildRangoDiaNegocio(fecha: Date): { inicio: Date; fin: Date } {
+    const año = fecha.getFullYear();
+    const mes = fecha.getMonth();
+    const dia = fecha.getDate();
+    return {
+      inicio: new Date(Date.UTC(año, mes, dia, 0, 0, 0, 0)),
+      fin: new Date(Date.UTC(año, mes, dia, 23, 59, 59, 999)),
+    };
+  }
+
+  /**
+   * Compat legacy: antes se tomaba el "día" por getUTCDate().
+   * Esto movía el día en AR (UTC-3) a partir de las 21:00.
+   * Mantenemos fallback para no romper cajas ya abiertas con el esquema viejo.
+   */
+  private buildRangoDiaLegacyUTC(fecha: Date): { inicio: Date; fin: Date } {
+    const año = fecha.getUTCFullYear();
+    const mes = fecha.getUTCMonth();
+    const dia = fecha.getUTCDate();
+    return {
+      inicio: new Date(Date.UTC(año, mes, dia, 0, 0, 0, 0)),
+      fin: new Date(Date.UTC(año, mes, dia, 23, 59, 59, 999)),
+    };
+  }
+
+  async save(cierreCaja: CierreCaja, options?: { session?: any }): Promise<CierreCaja> {
+    const session = options?.session;
     const cierreCajaDoc = CierreCajaMapper.toPersistence(cierreCaja);
 
     if (cierreCaja.id) {
       const updated = await this.cierreCajaModel
-        .findByIdAndUpdate(cierreCaja.id, cierreCajaDoc, { new: true })
+        .findByIdAndUpdate(cierreCaja.id, cierreCajaDoc, { new: true, session })
         .exec();
       return CierreCajaMapper.toDomain(updated);
     } else {
-      const created = await this.cierreCajaModel.create(cierreCajaDoc);
+      const [created] = await this.cierreCajaModel.create([cierreCajaDoc], { session });
       return CierreCajaMapper.toDomain(created);
     }
   }
@@ -33,14 +59,10 @@ export class CajaRepository implements ICajaRepository {
   }
 
   async findByFecha(fecha: Date): Promise<CierreCaja | null> {
-    // Normalizar fecha a UTC para evitar problemas de zona horaria
-    const año = fecha.getUTCFullYear();
-    const mes = fecha.getUTCMonth();
-    const dia = fecha.getUTCDate();
-    const inicio = new Date(Date.UTC(año, mes, dia, 0, 0, 0, 0));
-    const fin = new Date(Date.UTC(año, mes, dia, 23, 59, 59, 999));
+    // Normalizar por "día de negocio" (calendario local), almacenado como UTC 00:00 del día local.
+    const { inicio, fin } = this.buildRangoDiaNegocio(fecha);
 
-    const cierreCajaDoc = await this.cierreCajaModel
+    let cierreCajaDoc = await this.cierreCajaModel
       .findOne({
         fecha: {
           $gte: inicio,
@@ -49,19 +71,32 @@ export class CajaRepository implements ICajaRepository {
       })
       .exec();
 
+    // Fallback legacy (cajas existentes creadas con día UTC)
+    if (!cierreCajaDoc) {
+      const legacy = this.buildRangoDiaLegacyUTC(fecha);
+      cierreCajaDoc = await this.cierreCajaModel
+        .findOne({
+          fecha: {
+            $gte: legacy.inicio,
+            $lte: legacy.fin,
+          },
+        })
+        .exec();
+    }
+
     return cierreCajaDoc ? CierreCajaMapper.toDomain(cierreCajaDoc) : null;
   }
 
   async findByRangoFechas(desde: Date, hasta: Date): Promise<CierreCaja[]> {
-    // Normalizar fechas a UTC
-    const añoDesde = desde.getUTCFullYear();
-    const mesDesde = desde.getUTCMonth();
-    const diaDesde = desde.getUTCDate();
+    // Normalizar fechas por "día de negocio" (calendario local)
+    const añoDesde = desde.getFullYear();
+    const mesDesde = desde.getMonth();
+    const diaDesde = desde.getDate();
     const inicio = new Date(Date.UTC(añoDesde, mesDesde, diaDesde, 0, 0, 0, 0));
     
-    const añoHasta = hasta.getUTCFullYear();
-    const mesHasta = hasta.getUTCMonth();
-    const diaHasta = hasta.getUTCDate();
+    const añoHasta = hasta.getFullYear();
+    const mesHasta = hasta.getMonth();
+    const diaHasta = hasta.getDate();
     const fin = new Date(Date.UTC(añoHasta, mesHasta, diaHasta, 23, 59, 59, 999));
 
     const cierresDocs = await this.cierreCajaModel
@@ -77,27 +112,38 @@ export class CajaRepository implements ICajaRepository {
     return cierresDocs.map((doc) => CierreCajaMapper.toDomain(doc));
   }
 
-  async update(cierreCaja: CierreCaja): Promise<CierreCaja> {
-    return this.save(cierreCaja);
+  async update(cierreCaja: CierreCaja, options?: { session?: any }): Promise<CierreCaja> {
+    return this.save(cierreCaja, options);
   }
 
-  async findCajaAbierta(fecha: Date): Promise<CierreCaja | null> {
-    // Normalizar fecha a UTC
-    const año = fecha.getUTCFullYear();
-    const mes = fecha.getUTCMonth();
-    const dia = fecha.getUTCDate();
-    const inicio = new Date(Date.UTC(año, mes, dia, 0, 0, 0, 0));
-    const fin = new Date(Date.UTC(año, mes, dia, 23, 59, 59, 999));
+  async findCajaAbierta(fecha: Date, options?: { session?: any }): Promise<CierreCaja | null> {
+    const session = options?.session;
+    // Normalizar por "día de negocio" (calendario local)
+    const { inicio, fin } = this.buildRangoDiaNegocio(fecha);
 
-    const cierreCajaDoc = await this.cierreCajaModel
+    let cierreCajaDoc = await this.cierreCajaModel
       .findOne({
         fecha: {
           $gte: inicio,
           $lte: fin,
         },
         estado: 'ABIERTO',
-      })
+      }, null, { session })
       .exec();
+
+    // Fallback legacy (cajas existentes creadas con día UTC)
+    if (!cierreCajaDoc) {
+      const legacy = this.buildRangoDiaLegacyUTC(fecha);
+      cierreCajaDoc = await this.cierreCajaModel
+        .findOne({
+          fecha: {
+            $gte: legacy.inicio,
+            $lte: legacy.fin,
+          },
+          estado: 'ABIERTO',
+        }, null, { session })
+        .exec();
+    }
 
     return cierreCajaDoc ? CierreCajaMapper.toDomain(cierreCajaDoc) : null;
   }

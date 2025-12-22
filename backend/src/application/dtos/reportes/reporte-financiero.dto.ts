@@ -10,6 +10,34 @@ export class ReporteFinancieroDto {
   @ApiProperty({ description: 'Total de ingresos (ventas)' })
   totalIngresos: number;
 
+  @ApiProperty({ description: 'Cantidad de ventas incluidas en totalIngresos' })
+  cantidadVentasIncluidas: number;
+
+  @ApiProperty({ description: 'Suma de control (recalculo) del total de ventas incluidas' })
+  controlSumaVentas: number;
+
+  @ApiProperty({ description: 'Detalle auditable de ventas que componen totalIngresos' })
+  ventasIncluidas: Array<{
+    id: string;
+    numero: string;
+    fecha: Date;
+    estado: string;
+    vendedorId: string;
+    clienteNombre?: string;
+    clienteDNI?: string;
+    subtotal: number;
+    descuento: number;
+    recargo: number;
+    total: number;
+    metodosPago: Array<{
+      tipo: string;
+      monto: number;
+      recargo?: number;
+      cuentaBancaria?: string;
+      referencia?: string;
+    }>;
+  }>;
+
   @ApiProperty({ description: 'Total de gastos' })
   totalGastos: number;
 

@@ -2,12 +2,14 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoadingProvider } from './context/LoadingContext';
+import Loading from './components/common/Loading';
+import GlobalLoader from './components/ui/GlobalLoader';
 import './App.css';
 
 // OPTIMIZACIÓN: Lazy loading de páginas para code splitting
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const VentasPage = lazy(() => import('./pages/VentasPage'));
-const NuevaVentaPage = lazy(() => import('./pages/NuevaVentaPage'));
 const ProductosPage = lazy(() => import('./pages/ProductosPage'));
 const CajaPage = lazy(() => import('./pages/CajaPage'));
 const ClientesPage = lazy(() => import('./pages/ClientesPage'));
@@ -15,24 +17,15 @@ const EmpleadosPage = lazy(() => import('./pages/EmpleadosPage'));
 const GastosPage = lazy(() => import('./pages/GastosPage'));
 const ReportesPage = lazy(() => import('./pages/ReportesPage'));
 const ProveedoresPage = lazy(() => import('./pages/ProveedoresPage'));
+const POSPage = lazy(() => import('./pages/POSPage'));
+const ConfiguracionRecargosPage = lazy(() => import('./pages/ConfiguracionRecargosPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        fontSize: '18px',
-        color: '#6b7280'
-      }}>
-        Cargando...
-      </div>
-    );
+    return <Loading fullScreen mensaje="Verificando sesión..." />;
   }
 
   if (!user) {
@@ -43,18 +36,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 // Componente de loading para Suspense
-const PageLoader = () => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '50vh',
-    fontSize: '18px',
-    color: '#6b7280'
-  }}>
-    Cargando...
-  </div>
-);
+const PageLoader = () => <Loading mensaje="Cargando página..." />;
 
 function AppRoutes() {
   return (
@@ -70,7 +52,7 @@ function AppRoutes() {
                   <Routes>
                     <Route path="/" element={<DashboardPage />} />
                     <Route path="/ventas" element={<VentasPage />} />
-                    <Route path="/ventas/nueva" element={<NuevaVentaPage />} />
+                    <Route path="/ventas/nueva" element={<POSPage />} />
                     <Route path="/productos" element={<ProductosPage />} />
                     <Route path="/caja" element={<CajaPage />} />
                     <Route path="/clientes" element={<ClientesPage />} />
@@ -78,6 +60,8 @@ function AppRoutes() {
                     <Route path="/gastos" element={<GastosPage />} />
                     <Route path="/reportes" element={<ReportesPage />} />
                     <Route path="/proveedores" element={<ProveedoresPage />} />
+                    <Route path="/configuracion/recargos" element={<ConfiguracionRecargosPage />} />
+                    <Route path="/pos" element={<POSPage />} />
                   </Routes>
                 </Suspense>
               </Layout>
@@ -91,11 +75,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <LoadingProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <GlobalLoader />
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </LoadingProvider>
   );
 }
 

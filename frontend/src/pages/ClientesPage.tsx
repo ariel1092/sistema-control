@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { clientesApi } from '../services/api';
+import { formatearMoneda } from '../utils/formatters';
+import Loading from '../components/common/Loading';
 import './ClientesPage.css';
 
 // Fix: Removed unused handleAbrirModalFactura function
@@ -131,14 +133,6 @@ function ClientesPage() {
     setShowModal(false);
     resetForm();
     setError(null);
-  };
-
-  const formatearMonto = (monto: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(monto);
   };
 
   const handleVerCuentaCorriente = async (cliente: Cliente) => {
@@ -292,6 +286,7 @@ function ClientesPage() {
 
   return (
     <div className="clientes-page">
+      {loading && clientes.length > 0 && <Loading fullScreen mensaje="Procesando..." />}
       <div className="clientes-header">
         <h1 className="page-title">👥 Clientes</h1>
         <button
@@ -315,9 +310,7 @@ function ClientesPage() {
       )}
 
       {loading && !clientes.length && (
-        <div className="loading-container">
-          <div className="loading-spinner">Cargando clientes...</div>
-        </div>
+        <Loading mensaje="Cargando clientes..." />
       )}
 
       <div className="clientes-table-container">
@@ -353,7 +346,7 @@ function ClientesPage() {
                     </span>
                   </td>
                   <td className={cliente.saldoCuentaCorriente > 0 ? 'saldo-positivo' : ''}>
-                    {formatearMonto(cliente.saldoCuentaCorriente)}
+                    {formatearMoneda(cliente.saldoCuentaCorriente)}
                   </td>
                   <td>
                     {cliente.tieneCuentaCorriente && (
@@ -509,7 +502,10 @@ function ClientesPage() {
               <div className="cc-resumen">
                 <div className="cc-resumen-card">
                   <div className="cc-resumen-label">Deuda Total</div>
-                  <div className="cc-resumen-valor saldo-total">{formatearMonto(cuentaCorriente.deudaTotal)}</div>
+                  <div className={`cc-resumen-valor ${cuentaCorriente.deudaTotal > 0 ? 'saldo-total' : 'text-success'}`}>
+                    {formatearMoneda(Math.abs(cuentaCorriente.deudaTotal))}
+                    {cuentaCorriente.deudaTotal < 0 && ' (A favor)'}
+                  </div>
                 </div>
                 <div className="cc-resumen-card">
                   <div className="cc-resumen-label">Facturas Pendientes</div>
@@ -519,22 +515,22 @@ function ClientesPage() {
 
               <div className="cc-actions">
                 <button 
-                  className="btn-primary btn-pago-total" 
+                  className="btn-pago btn-success" 
                   onClick={() => {
                     setFormDataPagoDirecto({
-                      monto: cuentaCorriente.deudaTotal.toString(),
+                      monto: Math.abs(cuentaCorriente.deudaTotal).toString(),
                       descripcion: '',
                       observaciones: '',
                       pagarTotal: true,
                     });
                     setShowModalPagoDirecto(true);
                   }}
-                  disabled={cuentaCorriente.deudaTotal <= 0}
+                  disabled={Math.abs(cuentaCorriente.deudaTotal) < 0.01}
                 >
                   ✅ Pago Total
                 </button>
                 <button 
-                  className="btn-primary btn-pago-parcial" 
+                  className="btn-pago btn-primary-cc" 
                   onClick={() => {
                     setFormDataPagoDirecto({
                       monto: '',
@@ -544,9 +540,15 @@ function ClientesPage() {
                     });
                     setShowModalPagoDirecto(true);
                   }}
-                  disabled={cuentaCorriente.deudaTotal <= 0}
+                  disabled={Math.abs(cuentaCorriente.deudaTotal) < 0.01}
                 >
                   💵 Pago Parcial
+                </button>
+                <button
+                  className="btn-pago btn-secondary-cc"
+                  onClick={() => setShowModalFactura(true)}
+                >
+                  📄 Cargar Factura
                 </button>
               </div>
 
@@ -578,9 +580,9 @@ function ClientesPage() {
                                 {factura.estaPorVencer && !factura.estaVencida && ' ⏰ Por vencer'}
                               </span>
                             </td>
-                            <td>{formatearMonto(factura.montoTotal)}</td>
-                            <td>{formatearMonto(factura.montoPagado)}</td>
-                            <td><strong>{formatearMonto(factura.saldoPendiente)}</strong></td>
+                            <td>{formatearMoneda(factura.montoTotal)}</td>
+                            <td>{formatearMoneda(factura.montoPagado)}</td>
+                            <td><strong>{formatearMoneda(factura.saldoPendiente)}</strong></td>
                             <td>
                               <button
                                 className="btn-small btn-primary"
@@ -624,10 +626,10 @@ function ClientesPage() {
                             </td>
                             <td>{mov.descripcion}</td>
                             <td className={mov.tipo.includes('PAGO') ? 'text-success' : 'text-danger'}>
-                              {mov.tipo.includes('PAGO') ? '-' : '+'}{formatearMonto(mov.monto)}
+                              {mov.tipo.includes('PAGO') ? '-' : '+'}{formatearMoneda(mov.monto)}
                             </td>
-                            <td>{formatearMonto(mov.saldoAnterior)}</td>
-                            <td><strong>{formatearMonto(mov.saldoActual)}</strong></td>
+                            <td>{formatearMoneda(mov.saldoAnterior)}</td>
+                            <td><strong>{formatearMoneda(mov.saldoActual)}</strong></td>
                           </tr>
                         ))}
                       </tbody>
@@ -739,15 +741,15 @@ function ClientesPage() {
               <div className="pago-info-card">
                 <div className="pago-info-item">
                   <span className="pago-info-label">Total Factura:</span>
-                  <span className="pago-info-value">{formatearMonto(facturaSeleccionada.montoTotal)}</span>
+                  <span className="pago-info-value">{formatearMoneda(facturaSeleccionada.montoTotal)}</span>
                 </div>
                 <div className="pago-info-item">
                   <span className="pago-info-label">Ya Pagado:</span>
-                  <span className="pago-info-value">{formatearMonto(facturaSeleccionada.montoPagado)}</span>
+                  <span className="pago-info-value">{formatearMoneda(facturaSeleccionada.montoPagado)}</span>
                 </div>
                 <div className="pago-info-item highlight">
                   <span className="pago-info-label">Saldo Pendiente:</span>
-                  <span className="pago-info-value">{formatearMonto(facturaSeleccionada.saldoPendiente)}</span>
+                  <span className="pago-info-value">{formatearMoneda(facturaSeleccionada.saldoPendiente)}</span>
                 </div>
               </div>
 
@@ -770,7 +772,7 @@ function ClientesPage() {
                     <div className="pago-opcion-content">
                       <span className="pago-opcion-icon">✅</span>
                       <span className="pago-opcion-title">Pago Total</span>
-                      <span className="pago-opcion-desc">{formatearMonto(facturaSeleccionada.saldoPendiente)}</span>
+                      <span className="pago-opcion-desc">{formatearMoneda(facturaSeleccionada.saldoPendiente)}</span>
                     </div>
                   </label>
                   <label className={`pago-opcion-card ${!formDataPago.pagarTotal ? 'selected' : ''}`}>
@@ -816,7 +818,7 @@ function ClientesPage() {
                     onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   />
                   <small style={{ display: 'block', color: '#6b7280', marginTop: '4px' }}>
-                    Máximo: {formatearMonto(facturaSeleccionada.saldoPendiente)}
+                    Máximo: {formatearMoneda(facturaSeleccionada.saldoPendiente)}
                   </small>
                 </div>
               )}
@@ -866,7 +868,7 @@ function ClientesPage() {
               <div className="pago-info-card">
                 <div className="pago-info-item highlight">
                   <span className="pago-info-label">Deuda Total:</span>
-                  <span className="pago-info-value">{formatearMonto(cuentaCorriente.deudaTotal)}</span>
+                  <span className="pago-info-value">{formatearMoneda(cuentaCorriente.deudaTotal)}</span>
                 </div>
               </div>
 
@@ -889,7 +891,7 @@ function ClientesPage() {
                     <div className="pago-opcion-content">
                       <span className="pago-opcion-icon">✅</span>
                       <span className="pago-opcion-title">Pago Total</span>
-                      <span className="pago-opcion-desc">{formatearMonto(cuentaCorriente.deudaTotal)}</span>
+                      <span className="pago-opcion-desc">{formatearMoneda(cuentaCorriente.deudaTotal)}</span>
                     </div>
                   </label>
                   <label className={`pago-opcion-card ${!formDataPagoDirecto.pagarTotal ? 'selected' : ''}`}>
@@ -935,7 +937,7 @@ function ClientesPage() {
                     onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   />
                   <small style={{ display: 'block', color: '#6b7280', marginTop: '4px' }}>
-                    Máximo: {formatearMonto(cuentaCorriente.deudaTotal)}
+                    Máximo: {formatearMoneda(cuentaCorriente.deudaTotal)}
                   </small>
                 </div>
               )}

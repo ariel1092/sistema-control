@@ -12,6 +12,10 @@ export const getDatabaseConfig = (): MongooseModuleOptions => {
     const mongodbPort = process.env.MONGODB_PORT || '27017';
     const mongodbDbName = process.env.MONGODB_DB_NAME || 'ventas-ferreteria';
     const mongodbAuthSource = process.env.MONGODB_AUTH_SOURCE || 'admin';
+    const mongodbReplicaSet =
+      process.env.MONGODB_REPLICA_SET ||
+      process.env.MONGODB_REPLICA_SET_NAME ||
+      'rs0';
     
     // Para desarrollo: intentar sin autenticación primero, luego con autenticación
     const useAuth = process.env.MONGODB_USE_AUTH === 'true';
@@ -21,6 +25,15 @@ export const getDatabaseConfig = (): MongooseModuleOptions => {
     } else {
       // Sin autenticación para desarrollo local
       mongodbUri = `mongodb://${mongodbHost}:${mongodbPort}/${mongodbDbName}`;
+    }
+
+    // Transacciones requieren replica set: agregar parámetro si no está presente.
+    // (Solo aplica a URIs "mongodb://" construidas acá; si usás Atlas / SRV, definí MONGODB_URI explícitamente).
+    if (
+      mongodbUri.startsWith('mongodb://') &&
+      !mongodbUri.includes('replicaSet=')
+    ) {
+      mongodbUri += (mongodbUri.includes('?') ? '&' : '?') + `replicaSet=${mongodbReplicaSet}`;
     }
   }
 

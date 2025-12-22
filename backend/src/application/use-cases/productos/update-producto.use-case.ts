@@ -33,6 +33,9 @@ export class UpdateProductoUseCase {
     if (dto.categoria !== undefined) {
       (producto as any).categoria = dto.categoria;
     }
+    if (dto.proveedorId !== undefined) {
+      (producto as any).proveedorId = dto.proveedorId;
+    }
     if (dto.precioVenta !== undefined) {
       producto.actualizarPrecio(dto.precioVenta);
     }
@@ -53,6 +56,12 @@ export class UpdateProductoUseCase {
     }
     if (dto.activo !== undefined) {
       producto.marcarActivo(dto.activo);
+    }
+    if (dto.descuento !== undefined) {
+      producto.descuento = dto.descuento;
+    }
+    if (dto.iva !== undefined) {
+      producto.iva = dto.iva;
     }
     if (dto.codigo !== undefined && dto.codigo !== producto.codigo) {
       (producto as any).codigo = dto.codigo;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatearMoneda } from '../../utils/formatters';
 
 interface SalesGridProps {
     items: any[];
@@ -29,8 +30,8 @@ export const SalesGrid: React.FC<SalesGridProps> = ({ items, onRemove }) => {
                             <div className="col-code">{item.codigo}</div>
                             <div className="col-name">{item.nombre}</div>
                             <div className="col-qty">{item.cantidad}</div>
-                            <div className="col-price">${item.precioUnitario.toLocaleString()}</div>
-                            <div className="col-subtotal">${item.subtotal.toLocaleString()}</div>
+                            <div className="col-price">{formatearMoneda(item.precioUnitario)}</div>
+                            <div className="col-subtotal">{formatearMoneda(item.subtotal)}</div>
                             <div className="col-action">
                                 <button className="btn-icon-delete" onClick={() => onRemove(idx)}>×</button>
                             </div>

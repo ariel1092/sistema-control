@@ -10,7 +10,7 @@ import { AbrirCajaUseCase } from '../../application/use-cases/caja/abrir-caja.us
 import { CerrarCajaUseCase } from '../../application/use-cases/caja/cerrar-caja.use-case';
 import { GetHistorialCajaUseCase } from '../../application/use-cases/caja/get-historial-caja.use-case';
 import { CrearMovimientoCajaUseCase } from '../../application/use-cases/caja/crear-movimiento-caja.use-case';
-import { VentasModule } from '../ventas/ventas.module';
+import { RegistrarMovimientosCajaVentaUseCase } from '../../application/use-cases/caja/registrar-movimientos-caja-venta.use-case';
 
 @Module({
   imports: [
@@ -18,7 +18,6 @@ import { VentasModule } from '../ventas/ventas.module';
       { name: CierreCajaMongo.name, schema: CierreCajaSchema },
       { name: MovimientoCajaMongo.name, schema: MovimientoCajaSchema },
     ]),
-    VentasModule,
   ],
   controllers: [CajaController],
   providers: [
@@ -35,7 +34,8 @@ import { VentasModule } from '../ventas/ventas.module';
     CerrarCajaUseCase,
     GetHistorialCajaUseCase,
     CrearMovimientoCajaUseCase,
+    RegistrarMovimientosCajaVentaUseCase,
   ],
-  exports: ['ICajaRepository', 'IMovimientoCajaRepository', GetResumenDiaUseCase],
+  exports: ['ICajaRepository', 'IMovimientoCajaRepository', GetResumenDiaUseCase, RegistrarMovimientosCajaVentaUseCase],
 })
 export class CajaModule {}

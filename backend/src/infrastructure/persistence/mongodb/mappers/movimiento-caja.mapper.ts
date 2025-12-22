@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { MovimientoCaja, TipoMovimientoCaja } from '../../../../domain/entities/movimiento-caja.entity';
+import { MovimientoCaja, OrigenMovimientoCaja, TipoMovimientoCaja } from '../../../../domain/entities/movimiento-caja.entity';
 import { MovimientoCajaMongo } from '../schemas/movimiento-caja.schema';
 
 export class MovimientoCajaMapper {
@@ -13,6 +13,14 @@ export class MovimientoCajaMapper {
       movimientoDoc.monto,
       movimientoDoc.motivo,
       movimientoDoc.usuarioId?.toString() || movimientoDoc.usuarioId,
+      (movimientoDoc.origen || OrigenMovimientoCaja.MANUAL) as OrigenMovimientoCaja,
+      movimientoDoc.metodoPago,
+      movimientoDoc.referencia,
+      movimientoDoc.cuentaBancaria,
+      movimientoDoc.recargo,
+      movimientoDoc.ventaId,
+      movimientoDoc.ventaNumero,
+      movimientoDoc.comprobanteFiscalId,
       movimientoDoc.createdAt,
     );
   }
@@ -22,6 +30,14 @@ export class MovimientoCajaMapper {
       tipo: movimiento.tipo,
       monto: movimiento.monto,
       motivo: movimiento.motivo,
+      origen: movimiento.origen,
+      metodoPago: movimiento.metodoPago,
+      referencia: movimiento.referencia,
+      cuentaBancaria: movimiento.cuentaBancaria,
+      recargo: movimiento.recargo,
+      ventaId: movimiento.ventaId,
+      ventaNumero: movimiento.ventaNumero,
+      comprobanteFiscalId: movimiento.comprobanteFiscalId,
     };
 
     if (movimiento.id) {

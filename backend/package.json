@@ -27,6 +27,7 @@
     "seed:products": "ts-node scripts/seed-products.ts",
     "seed:ventas": "ts-node scripts/seed-ventas.ts",
     "seed:admin": "ts-node scripts/seed-admin.ts",
+    "seed:precios-proveedores": "ts-node scripts/seed-precios-proveedores.ts",
     "clean:db": "ts-node scripts/clean-database.ts",
     "clear:db": "ts-node scripts/clear-database.ts",
     "clear:db:prod": "ts-node scripts/clear-database-prod.ts",

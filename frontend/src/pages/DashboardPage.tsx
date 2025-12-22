@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfWeek, startOfYear } from 'date-fns';
 import { cajaApi, proveedoresApi, clientesApi } from '../services/api';
+import { formatearMoneda } from '../utils/formatters';
+import { useGlobalLoading } from '../context/LoadingContext';
+import Loading from '../components/common/Loading';
 import {
   LineChart,
   Line,
@@ -21,6 +24,7 @@ import './DashboardPage.css';
 type Periodo = 'diario' | 'semanal' | 'anual';
 
 function DashboardPage() {
+  const { showLoading, hideLoading } = useGlobalLoading();
   const [periodo, setPeriodo] = useState<Periodo>('diario');
   const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [resumenDiario, setResumenDiario] = useState<any>(null);
@@ -127,6 +131,16 @@ function DashboardPage() {
     }
   }, [periodo, fecha]);
 
+  // Refs para evitar closures viejas (event listeners montados 1 sola vez)
+  const fechaRef = useRef(fecha);
+  const periodoRef = useRef(periodo);
+  useEffect(() => {
+    fechaRef.current = fecha;
+  }, [fecha]);
+  useEffect(() => {
+    periodoRef.current = periodo;
+  }, [periodo]);
+
   // Función para cargar el total de deuda de proveedores
   const cargarDeudaProveedores = useCallback(async () => {
     try {
@@ -198,27 +212,30 @@ function DashboardPage() {
 
   // Escuchar eventos de ventas para actualizar en tiempo real
   useEffect(() => {
-    const handleVentaRegistrada = () => {
-      // Invalidar caché y recargar
-      const cacheKey = `dashboard_resumen_${fecha}`;
-      sessionStorage.removeItem(cacheKey);
-      sessionStorage.removeItem(`${cacheKey}_time`);
-      cargarDatosRef.current();
-    };
-    
-    const handleVentaCancelada = () => {
-      // Invalidar caché y recargar
-      const cacheKey = `dashboard_resumen_${fecha}`;
-      sessionStorage.removeItem(cacheKey);
-      sessionStorage.removeItem(`${cacheKey}_time`);
-      cargarDatosRef.current();
-    };
+  const handleVentaRegistrada = () => {
+    // Invalidar caché y recargar
+    showLoading("Actualizando dashboard...");
+    const cacheKey = `dashboard_resumen_${fechaRef.current}`;
+    sessionStorage.removeItem(cacheKey);
+    sessionStorage.removeItem(`${cacheKey}_time`);
+    cargarDatosRef.current();
+    setTimeout(() => hideLoading(), 500);
+  };
+  
+  const handleVentaCancelada = () => {
+    // Invalidar caché y recargar
+    showLoading("Actualizando dashboard...");
+    const cacheKey = `dashboard_resumen_${fechaRef.current}`;
+    sessionStorage.removeItem(cacheKey);
+    sessionStorage.removeItem(`${cacheKey}_time`);
+    cargarDatosRef.current();
+    setTimeout(() => hideLoading(), 500);
+  };
 
     window.addEventListener('ventaRegistrada', handleVentaRegistrada);
     window.addEventListener('ventaCancelada', handleVentaCancelada);
 
     return () => {
-      console.log('Dashboard: Limpiando listeners...');
       window.removeEventListener('ventaRegistrada', handleVentaRegistrada);
       window.removeEventListener('ventaCancelada', handleVentaCancelada);
     };
@@ -260,21 +277,9 @@ function DashboardPage() {
         </div>
       )}
 
-      {/* Skeleton loader mejorado */}
+      {/* Loader profesional */}
       {loading && !resumenDiario && periodo === 'diario' && (
-        <div className="dashboard-content">
-          <div className="summary-cards">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="summary-card skeleton">
-                <div className="card-icon skeleton-icon"></div>
-                <div className="card-content">
-                  <div className="card-label skeleton-text"></div>
-                  <div className="card-value skeleton-text"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Loading mensaje="Cargando resumen del día..." />
       )}
 
       {/* Reporte Diario */}
@@ -286,7 +291,7 @@ function DashboardPage() {
               <div className="card-icon">💰</div>
               <div className="card-content">
                 <div className="card-label">Total General</div>
-                <div className="card-value">${(resumenDiario.totalGeneral || 0).toFixed(2)}</div>
+                <div className="card-value">{formatearMoneda(resumenDiario.totalGeneral || 0)}</div>
               </div>
             </div>
             <div className="summary-card">
@@ -300,28 +305,28 @@ function DashboardPage() {
               <div className="card-icon">💵</div>
               <div className="card-content">
                 <div className="card-label">Efectivo</div>
-                <div className="card-value">${(resumenDiario.totalEfectivo || 0).toFixed(2)}</div>
+                <div className="card-value">{formatearMoneda(resumenDiario.totalEfectivo || 0)}</div>
               </div>
             </div>
             <div className="summary-card">
               <div className="card-icon">💳</div>
               <div className="card-content">
                 <div className="card-label">Tarjeta/Transferencia</div>
-                <div className="card-value">${((resumenDiario.totalTarjeta || 0) + (resumenDiario.totalTransferencia || 0)).toFixed(2)}</div>
+                <div className="card-value">{formatearMoneda(((resumenDiario.totalTarjeta || 0) + (resumenDiario.totalTransferencia || 0)))}</div>
               </div>
             </div>
             <div className="summary-card">
               <div className="card-icon">📋</div>
               <div className="card-content">
                 <div className="card-label">Deuda Proveedores</div>
-                <div className="card-value">${totalDeudaProveedores.toFixed(2)}</div>
+                <div className="card-value">{formatearMoneda(totalDeudaProveedores)}</div>
               </div>
             </div>
             <div className="summary-card">
               <div className="card-icon">👥</div>
               <div className="card-content">
                 <div className="card-label">Deuda Clientes</div>
-                <div className="card-value">${totalDeudaClientes.toFixed(2)}</div>
+                <div className="card-value">{formatearMoneda(totalDeudaClientes)}</div>
               </div>
             </div>
           </div>
@@ -354,7 +359,7 @@ function DashboardPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                  <Tooltip formatter={(value: number) => formatearMoneda(value)} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -384,8 +389,8 @@ function DashboardPage() {
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                  <YAxis tickFormatter={(value) => `$${value}`} />
+                  <Tooltip formatter={(value: number) => formatearMoneda(value)} />
                   <Legend />
                   <Bar dataKey="valor" fill="#3b82f6" />
                 </BarChart>
@@ -404,7 +409,7 @@ function DashboardPage() {
               <div className="card-content">
                 <div className="card-label">Total Semanal</div>
                 <div className="card-value">
-                  ${resumenSemanal.reduce((sum, d) => sum + (d.totalGeneral || 0), 0).toFixed(2)}
+                  {formatearMoneda(resumenSemanal.reduce((sum, d) => sum + (d.totalGeneral || 0), 0))}
                 </div>
               </div>
             </div>
@@ -422,7 +427,7 @@ function DashboardPage() {
               <div className="card-content">
                 <div className="card-label">Promedio Diario</div>
                 <div className="card-value">
-                  ${(resumenSemanal.reduce((sum, d) => sum + (d.totalGeneral || 0), 0) / 7).toFixed(2)}
+                  {formatearMoneda((resumenSemanal.reduce((sum, d) => sum + (d.totalGeneral || 0), 0) / 7))}
                 </div>
               </div>
             </div>
@@ -435,12 +440,12 @@ function DashboardPage() {
                 <LineChart data={resumenSemanal}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="dia" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                  <YAxis tickFormatter={(value) => `$${value}`} />
+                  <Tooltip formatter={(value: number) => formatearMoneda(value)} />
                   <Legend />
                   <Line type="monotone" dataKey="totalGeneral" stroke="#3b82f6" strokeWidth={2} name="Total" />
                   <Line type="monotone" dataKey="totalEfectivo" stroke="#10b981" strokeWidth={2} name="Efectivo" />
-                  <Line type="monotone" dataKey="totalTarjeta" stroke="#f59e0b" strokeWidth={2} name="Tarjeta" />
+                  <Line type="monotone" dataKey="totalOtros" stroke="#f59e0b" strokeWidth={2} name="Tarj/Transf" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -451,11 +456,11 @@ function DashboardPage() {
                 <BarChart data={resumenSemanal}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="dia" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                  <YAxis tickFormatter={(value) => `$${value}`} />
+                  <Tooltip formatter={(value: number) => formatearMoneda(value)} />
                   <Legend />
                   <Bar dataKey="totalEfectivo" fill="#10b981" name="Efectivo" />
-                  <Bar dataKey="totalTarjeta" fill="#f59e0b" name="Tarjeta" />
+                  <Bar dataKey="totalOtros" fill="#f59e0b" name="Tarj/Transf" />
                   <Bar dataKey="totalGeneral" fill="#3b82f6" name="Total" />
                 </BarChart>
               </ResponsiveContainer>
@@ -473,7 +478,7 @@ function DashboardPage() {
               <div className="card-content">
                 <div className="card-label">Total Anual</div>
                 <div className="card-value">
-                  ${resumenAnual.reduce((sum, d) => sum + (d.totalGeneral || 0), 0).toFixed(2)}
+                  {formatearMoneda(resumenAnual.reduce((sum, d) => sum + (d.totalGeneral || 0), 0))}
                 </div>
               </div>
             </div>
@@ -491,7 +496,7 @@ function DashboardPage() {
               <div className="card-content">
                 <div className="card-label">Promedio Mensual</div>
                 <div className="card-value">
-                  ${(resumenAnual.reduce((sum, d) => sum + (d.totalGeneral || 0), 0) / 12).toFixed(2)}
+                  {formatearMoneda((resumenAnual.reduce((sum, d) => sum + (d.totalGeneral || 0), 0) / 12))}
                 </div>
               </div>
             </div>
@@ -504,8 +509,8 @@ function DashboardPage() {
                 <LineChart data={resumenAnual}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+                  <YAxis tickFormatter={(value) => `$${value}`} />
+                  <Tooltip formatter={(value: number) => formatearMoneda(value)} />
                   <Legend />
                   <Line type="monotone" dataKey="totalGeneral" stroke="#3b82f6" strokeWidth={3} name="Total Mensual" />
                 </LineChart>

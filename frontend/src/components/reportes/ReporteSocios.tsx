@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { reportesApi } from '../../services/api';
+import { formatearMoneda } from '../../utils/formatters';
 import {
   BarChart,
   Bar,
@@ -90,14 +91,6 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
     };
   }, []);
 
-  const formatearMonto = (monto: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(monto);
-  };
-
   if (loading) return <div className="loading">Cargando reporte de socios...</div>;
   if (error) return <div className="error">{error}</div>;
   if (!data) return null;
@@ -113,15 +106,15 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
             <div className="card-icon">{balance.cuentaBancaria === 'ABDUL' ? '👤' : '👤'}</div>
             <div className="card-content">
               <div className="card-label">{balance.cuentaBancaria === 'ABDUL' ? 'Cuenta A' : 'Cuenta O'}</div>
-              <div className="card-value">{formatearMonto(balance.totalRetiros)}</div>
+              <div className="card-value">{formatearMoneda(balance.totalRetiros)}</div>
               <div className="card-subvalue">
-                Retiros: {formatearMonto(balance.totalRetiros)}
+                Retiros: {formatearMoneda(balance.totalRetiros)}
               </div>
               <div className="card-subvalue" style={{ fontSize: '12px', color: '#10b981', marginTop: '4px' }}>
-                Transferencias recibidas: {formatearMonto(balance.totalTransferenciasRecibidas || 0)}
+                Transferencias recibidas: {formatearMoneda(balance.totalTransferenciasRecibidas || 0)}
               </div>
               <div className="card-subvalue" style={{ fontSize: '12px', color: '#f59e0b', marginTop: '4px' }}>
-                Gastos MercadoPago: {formatearMonto(balance.totalGastosMercadoPago || 0)}
+                Gastos MercadoPago: {formatearMoneda(balance.totalGastosMercadoPago || 0)}
               </div>
             </div>
           </div>
@@ -130,12 +123,12 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
           <div className="card-icon">💰</div>
           <div className="card-content">
             <div className="card-label">Total Retiros Combinados</div>
-            <div className="card-value">{formatearMonto(data.totalRetirosCombinados)}</div>
+            <div className="card-value">{formatearMoneda(data.totalRetirosCombinados)}</div>
             <div className="card-subvalue" style={{ fontSize: '12px', color: '#10b981', marginTop: '4px' }}>
-              Total Transferencias: {formatearMonto(data.totalTransferenciasCombinadas || 0)}
+              Total Transferencias: {formatearMoneda(data.totalTransferenciasCombinadas || 0)}
             </div>
             <div className="card-subvalue" style={{ fontSize: '12px', color: '#f59e0b', marginTop: '4px' }}>
-              Total Gastos MercadoPago: {formatearMonto(data.totalGastosMercadoPagoCombinados || 0)}
+              Total Gastos MercadoPago: {formatearMoneda(data.totalGastosMercadoPagoCombinados || 0)}
             </div>
           </div>
         </div>
@@ -154,7 +147,7 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="socio" />
               <YAxis />
-              <Tooltip formatter={(value: number) => formatearMonto(value)} />
+              <Tooltip formatter={(value: number) => formatearMoneda(value)} />
               <Legend />
               <Bar dataKey="retiros" fill="#ef4444" name="Retiros" />
               <Bar dataKey="gastosMercadoPago" fill="#f59e0b" name="Gastos MercadoPago" />
@@ -183,7 +176,7 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatearMonto(value)} />
+              <Tooltip formatter={(value: number) => formatearMoneda(value)} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -208,7 +201,7 @@ function ReporteSocios({ fechaInicio, fechaFin }: ReporteSociosProps) {
                   <tr key={retiro.id}>
                     <td>{format(new Date(retiro.fecha), 'dd/MM/yyyy HH:mm')}</td>
                     <td>{retiro.cuentaBancaria}</td>
-                    <td>{formatearMonto(retiro.monto)}</td>
+                    <td>{formatearMoneda(retiro.monto)}</td>
                     <td>{retiro.descripcion}</td>
                   </tr>
                 ))}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ventasApi, retirosApi } from '../services/api';
+import StatusModal from './common/StatusModal';
 import './ModalSocio.css';
 
 interface ModalSocioProps {
@@ -30,6 +31,7 @@ function ModalSocio({ socio, total, transferenciasRecibidas = 0, onClose }: Moda
     observaciones: '',
   });
   const [success, setSuccess] = useState<string | null>(null);
+  const [errorModal, setErrorModal] = useState<{show: boolean, message: string}>({show: false, message: ''});
 
   useEffect(() => {
     cargarTransferencias();
@@ -109,7 +111,7 @@ function ModalSocio({ socio, total, transferenciasRecibidas = 0, onClose }: Moda
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       console.error('Error al registrar retiro:', err);
-      alert('Error al registrar retiro: ' + (err.message || 'Error desconocido'));
+      setErrorModal({show: true, message: err.message || 'Error desconocido'});
     } finally {
       setLoading(false);
     }
@@ -125,6 +127,13 @@ function ModalSocio({ socio, total, transferenciasRecibidas = 0, onClose }: Moda
 
   return (
     <div className="modal-overlay" onClick={onClose}>
+      <StatusModal 
+        show={errorModal.show}
+        type="error"
+        title="Error al registrar retiro"
+        message={errorModal.message}
+        onClose={() => setErrorModal({show: false, message: ''})}
+      />
       <div className="modal-content modal-socio" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{socio === 'ABDUL' ? '👤 Abdul' : '👤 Osvaldo'}</h2>

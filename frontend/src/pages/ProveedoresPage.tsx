@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { proveedoresApi } from '../services/api';
+import { formatearMoneda } from '../utils/formatters';
+import Loading from '../components/common/Loading';
 import './ProveedoresPage.css';
 
 interface Proveedor {
@@ -135,6 +137,7 @@ function ProveedoresPage() {
     observaciones: '',
     plazoCuentaCorriente: '',
     descuento: '0',
+    margenGanancia: '100',
   });
 
   useEffect(() => {
@@ -163,6 +166,7 @@ function ProveedoresPage() {
       const dataToSend = {
         ...formData,
         descuento: formData.descuento ? parseFloat(formData.descuento) : undefined,
+        margenGanancia: formData.margenGanancia ? parseFloat(formData.margenGanancia) : 100,
         plazoCuentaCorriente: formData.plazoCuentaCorriente || undefined,
       };
       await proveedoresApi.crear(dataToSend);
@@ -193,6 +197,7 @@ function ProveedoresPage() {
       observaciones: '',
       plazoCuentaCorriente: '',
       descuento: '0',
+      margenGanancia: '100',
     });
   };
 
@@ -218,6 +223,7 @@ function ProveedoresPage() {
       observaciones: proveedor.observaciones || '',
       plazoCuentaCorriente: proveedor.plazoCuentaCorriente?.toString() || '',
       descuento: proveedor.descuento?.toString() || '0',
+      margenGanancia: (proveedor as any).margenGanancia?.toString() || '100',
     });
     setShowModalEditar(true);
   };
@@ -239,6 +245,7 @@ function ProveedoresPage() {
       const dataToSend = {
         ...formData,
         descuento: formData.descuento ? parseFloat(formData.descuento) : undefined,
+        margenGanancia: formData.margenGanancia ? parseFloat(formData.margenGanancia) : 100,
         plazoCuentaCorriente: formData.plazoCuentaCorriente ? parseFloat(formData.plazoCuentaCorriente) : undefined,
       };
       await proveedoresApi.actualizar(proveedorEditando.id, dataToSend);
@@ -257,14 +264,6 @@ function ProveedoresPage() {
 
   const formatearCategoria = (categoria: string) => {
     return categoria.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (l) => l.toUpperCase());
-  };
-
-  const formatearMonto = (monto: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(monto);
   };
 
   const handleClickProveedor = useCallback(async (proveedor: Proveedor) => {
@@ -423,6 +422,7 @@ function ProveedoresPage() {
 
   return (
     <div className="proveedores-page">
+      {loading && proveedores.length > 0 && <Loading fullScreen mensaje="Procesando..." />}
       <div className="proveedores-header">
         <h1 className="page-title">🏭 Proveedores</h1>
         <div className="header-buttons">
@@ -448,7 +448,7 @@ function ProveedoresPage() {
       {success && <div className="alert alert-success">{success}</div>}
 
       {loading && !proveedores.length ? (
-        <div className="loading">Cargando proveedores...</div>
+        <Loading mensaje="Cargando proveedores..." />
       ) : (
         <div className="proveedores-grid">
           {proveedores.map((proveedor) => (
@@ -487,13 +487,13 @@ function ProveedoresPage() {
                   <div className="resumen-item-card">
                     <span className="resumen-label-card">Saldo Total a Pagar:</span>
                     <span className="resumen-value-card saldo-total">
-                      {formatearMonto(proveedor.resumenFacturas?.saldoTotal || proveedor.saldoPendiente?.saldoTotal || 0)}
+                      {formatearMoneda(proveedor.resumenFacturas?.saldoTotal || proveedor.saldoPendiente?.saldoTotal || 0)}
                     </span>
                   </div>
                   <div className="resumen-item-card">
                     <span className="resumen-label-card">Saldo Más Próximo a Vencer:</span>
                     <span className="resumen-value-card saldo-proximo">
-                      {formatearMonto(proveedor.resumenFacturas?.saldoProximoVencer || proveedor.saldoPendiente?.saldoProximoVencer || 0)}
+                      {formatearMoneda(proveedor.resumenFacturas?.saldoProximoVencer || proveedor.saldoPendiente?.saldoProximoVencer || 0)}
                     </span>
                   </div>
                 </div>
@@ -633,6 +633,19 @@ function ProveedoresPage() {
                     placeholder="0"
                     min="0"
                     max="100"
+                    step="1"
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Margen de Ganancia (%)</label>
+                  <input
+                    type="number"
+                    value={formData.margenGanancia}
+                    onChange={(e) => setFormData({ ...formData, margenGanancia: e.target.value })}
+                    placeholder="100"
+                    min="0"
                     step="1"
                     onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   />
@@ -795,6 +808,19 @@ function ProveedoresPage() {
                     onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   />
                 </div>
+
+                <div className="form-group">
+                  <label>Margen de Ganancia (%)</label>
+                  <input
+                    type="number"
+                    value={formData.margenGanancia}
+                    onChange={(e) => setFormData({ ...formData, margenGanancia: e.target.value })}
+                    placeholder="100"
+                    min="0"
+                    step="1"
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                  />
+                </div>
               </div>
 
               <div className="form-group">
@@ -841,7 +867,7 @@ function ProveedoresPage() {
 
             <div className="modal-body">
               {loadingCC ? (
-                <div className="loading">Cargando cuenta corriente...</div>
+                <Loading mensaje="Cargando cuenta corriente..." />
               ) : cuentaCorriente ? (
                 <>
                   {/* Resumen de Deuda */}
@@ -849,7 +875,7 @@ function ProveedoresPage() {
                     <div className="cc-resumen-card">
                       <div className="cc-resumen-label">Deuda Total</div>
                       <div className={`cc-resumen-monto ${cuentaCorriente.deudaTotal > 0 ? 'deuda' : 'positivo'}`}>
-                        {formatearMonto(cuentaCorriente.deudaTotal)}
+                        {formatearMoneda(cuentaCorriente.deudaTotal)}
                       </div>
                     </div>
                     <div className="cc-resumen-card">
@@ -914,9 +940,9 @@ function ProveedoresPage() {
                                       : `${factura.diasHastaVencimiento} días`}
                                   </span>
                                 </td>
-                                <td>{formatearMonto(factura.total)}</td>
-                                <td>{formatearMonto(factura.montoPagado)}</td>
-                                <td><strong>{formatearMonto(factura.saldoPendiente)}</strong></td>
+                                <td>{formatearMoneda(factura.total)}</td>
+                                <td>{formatearMoneda(factura.montoPagado)}</td>
+                                <td><strong>{formatearMoneda(factura.saldoPendiente)}</strong></td>
                                 <td>
                                   <button
                                     className="btn-small btn-primary"
@@ -956,7 +982,7 @@ function ProveedoresPage() {
                               <tr key={remito.id}>
                                 <td>{remito.numero}</td>
                                 <td>{format(new Date(remito.fecha), 'dd/MM/yyyy')}</td>
-                                <td>{formatearMonto(remito.total)}</td>
+                                <td>{formatearMoneda(remito.total)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -990,7 +1016,7 @@ function ProveedoresPage() {
                                     ? format(new Date(orden.fechaEstimadaEntrega), 'dd/MM/yyyy')
                                     : '-'}
                                 </td>
-                                <td>{formatearMonto(orden.total)}</td>
+                                <td>{formatearMoneda(orden.total)}</td>
                                 <td>
                                   <span className={`badge-estado ${orden.estado.toLowerCase()}`}>
                                     {orden.estado}
@@ -1032,10 +1058,10 @@ function ProveedoresPage() {
                                 <td>{mov.descripcion}</td>
                                 <td className={mov.tipo.includes('PAGO') || mov.tipo.includes('CREDITO') ? 'monto-positivo' : 'monto-negativo'}>
                                   {mov.tipo.includes('PAGO') || mov.tipo.includes('CREDITO') ? '-' : '+'}
-                                  {formatearMonto(mov.monto)}
+                                  {formatearMoneda(mov.monto)}
                                 </td>
-                                <td>{formatearMonto(mov.saldoAnterior)}</td>
-                                <td><strong>{formatearMonto(mov.saldoActual)}</strong></td>
+                                <td>{formatearMoneda(mov.saldoAnterior)}</td>
+                                <td><strong>{formatearMoneda(mov.saldoActual)}</strong></td>
                               </tr>
                             ))}
                           </tbody>
@@ -1204,18 +1230,18 @@ function ProveedoresPage() {
                 <div className="factura-resumen">
                   <div className="resumen-item">
                     <span className="resumen-label">Importe Bruto:</span>
-                    <span className="resumen-value">{formatearMonto(parseFloat(formDataFactura.importeBruto) || 0)}</span>
+                    <span className="resumen-value">{formatearMoneda(parseFloat(formDataFactura.importeBruto) || 0)}</span>
                   </div>
                   {parseFloat(formDataFactura.descuento) > 0 && (
                     <div className="resumen-item">
                       <span className="resumen-label">Descuento ({formDataFactura.descuento}%):</span>
-                      <span className="resumen-value descuento">-{formatearMonto((parseFloat(formDataFactura.importeBruto) || 0) * parseFloat(formDataFactura.descuento) / 100)}</span>
+                      <span className="resumen-value descuento">-{formatearMoneda((parseFloat(formDataFactura.importeBruto) || 0) * parseFloat(formDataFactura.descuento) / 100)}</span>
                     </div>
                   )}
                   <div className="resumen-item">
                     <span className="resumen-label">Saldo Neto a Pagar:</span>
                     <span className="resumen-value total">
-                      {formatearMonto(
+                      {formatearMoneda(
                         (parseFloat(formDataFactura.importeBruto) || 0) * 
                         (1 - (parseFloat(formDataFactura.descuento) || 0) / 100)
                       )}
@@ -1287,9 +1313,9 @@ function ProveedoresPage() {
                       <div className="factura-body">
                         <p><strong>Fecha:</strong> {format(new Date(factura.fecha), 'dd/MM/yyyy')}</p>
                         <p><strong>Vencimiento:</strong> {format(new Date(factura.fechaVencimiento), 'dd/MM/yyyy')}</p>
-                        <p><strong>Total:</strong> {formatearMonto(factura.total || 0)}</p>
+                        <p><strong>Total:</strong> {formatearMoneda(factura.total || 0)}</p>
                         {!factura.pagada && (
-                          <p><strong>Saldo Pendiente:</strong> {formatearMonto(factura.saldoPendiente || 0)}</p>
+                          <p><strong>Saldo Pendiente:</strong> {formatearMoneda(factura.saldoPendiente || 0)}</p>
                         )}
                       </div>
                     </div>
@@ -1333,21 +1359,21 @@ function ProveedoresPage() {
                       <td><strong>{detalleFactura.numero}</strong></td>
                       <td>{format(new Date(detalleFactura.fecha), 'dd/MM/yyyy')}</td>
                       <td>{format(new Date(detalleFactura.fechaVencimiento), 'dd/MM/yyyy')}</td>
-                      <td>{formatearMonto(detalleFactura.totalBruto || detalleFactura.total || 0)}</td>
+                      <td>{formatearMoneda(detalleFactura.totalBruto || detalleFactura.total || 0)}</td>
                       <td>
                         {detalleFactura.descuentoTotal > 0 ? (
                           <>
                             {((detalleFactura.descuentoTotal / (detalleFactura.totalBruto || detalleFactura.total || 1)) * 100).toFixed(0)}%
                             <br />
                             <small style={{ color: '#ef4444', fontWeight: 600 }}>
-                              -{formatearMonto(detalleFactura.descuentoTotal || 0)}
+                              -{formatearMoneda(detalleFactura.descuentoTotal || 0)}
                             </small>
                           </>
                         ) : (
                           '0%'
                         )}
                       </td>
-                      <td><strong style={{ color: '#b91c1c', fontSize: '16px' }}>{formatearMonto(detalleFactura.saldoPendiente || 0)}</strong></td>
+                      <td><strong style={{ color: '#b91c1c', fontSize: '16px' }}>{formatearMoneda(detalleFactura.saldoPendiente || 0)}</strong></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1357,15 +1383,15 @@ function ProveedoresPage() {
               <div className="factura-resumen-adicional">
                 <div className="resumen-card">
                   <div className="resumen-card-label">Total Factura</div>
-                  <div className="resumen-card-value">{formatearMonto(detalleFactura.total || 0)}</div>
+                  <div className="resumen-card-value">{formatearMoneda(detalleFactura.total || 0)}</div>
                 </div>
                 <div className="resumen-card">
                   <div className="resumen-card-label">Monto Pagado</div>
-                  <div className="resumen-card-value">{formatearMonto(detalleFactura.montoPagado || 0)}</div>
+                  <div className="resumen-card-value">{formatearMoneda(detalleFactura.montoPagado || 0)}</div>
                 </div>
                 <div className="resumen-card destacado">
                   <div className="resumen-card-label">Saldo Pendiente</div>
-                  <div className="resumen-card-value pendiente">{formatearMonto(detalleFactura.saldoPendiente || 0)}</div>
+                  <div className="resumen-card-value pendiente">{formatearMoneda(detalleFactura.saldoPendiente || 0)}</div>
                 </div>
                 <div className="resumen-card">
                   <div className="resumen-card-label">Estado</div>
@@ -1402,10 +1428,10 @@ function ProveedoresPage() {
                               {pago.tipo === 'PAGO_COMPLETO' ? 'Pago Completo' : 'Pago Parcial'}
                             </span>
                           </td>
-                          <td><strong style={{ color: '#10b981', fontSize: '16px' }}>{formatearMonto(pago.monto)}</strong></td>
+                          <td><strong style={{ color: '#10b981', fontSize: '16px' }}>{formatearMoneda(pago.monto)}</strong></td>
                           <td>{pago.descripcion}</td>
-                          <td>{formatearMonto(pago.saldoAnterior)}</td>
-                          <td><strong>{formatearMonto(pago.saldoDespues)}</strong></td>
+                          <td>{formatearMoneda(pago.saldoAnterior)}</td>
+                          <td><strong>{formatearMoneda(pago.saldoDespues)}</strong></td>
                           <td>{pago.observaciones || '-'}</td>
                         </tr>
                       ))}
@@ -1457,7 +1483,7 @@ function ProveedoresPage() {
             <form onSubmit={handleRegistrarPago} className="modal-body">
               <div className="pago-saldo-card">
                 <div className="pago-saldo-label">Saldo Pendiente</div>
-                <div className="pago-saldo-monto">{formatearMonto(facturaSeleccionada.saldoPendiente || 0)}</div>
+                <div className="pago-saldo-monto">{formatearMoneda(facturaSeleccionada.saldoPendiente || 0)}</div>
               </div>
 
               <div className="pago-opciones">
@@ -1536,7 +1562,7 @@ function ProveedoresPage() {
                       autoFocus
                     />
                   </div>
-                  <small>Máximo: {formatearMonto(facturaSeleccionada.saldoPendiente || 0)}</small>
+                  <small>Máximo: {formatearMoneda(facturaSeleccionada.saldoPendiente || 0)}</small>
                 </div>
               )}
 
@@ -1544,7 +1570,7 @@ function ProveedoresPage() {
                 <div className="pago-saldo-restante">
                   <div className="saldo-restante-label">Saldo restante después del pago:</div>
                   <div className="saldo-restante-monto">
-                    {formatearMonto(Math.max(0, (facturaSeleccionada.saldoPendiente || 0) - parseFloat(montoPagoFactura || '0')))}
+                    {formatearMoneda(Math.max(0, (facturaSeleccionada.saldoPendiente || 0) - parseFloat(montoPagoFactura || '0')))}
                   </div>
                 </div>
               )}

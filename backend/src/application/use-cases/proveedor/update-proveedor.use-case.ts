@@ -32,6 +32,7 @@ export class UpdateProveedorUseCase {
       observaciones: dto.observaciones,
       plazoCuentaCorriente: dto.plazoCuentaCorriente,
       descuento: dto.descuento,
+      margenGanancia: dto.margenGanancia,
     });
 
     return await this.proveedorRepository.save(proveedor);

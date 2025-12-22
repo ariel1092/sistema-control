@@ -93,4 +93,8 @@ export class CreateProveedorDto {
   @ApiProperty({ required: false })
   @IsOptional()
   descuento?: number;
+
+  @ApiProperty({ required: false, default: 100 })
+  @IsOptional()
+  margenGanancia?: number;
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subDays } from 'date-fns';
 import { gastosApi, retirosApi } from '../services/api';
+import Loading from '../components/common/Loading';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './GastosPage.css';
 
@@ -47,6 +48,8 @@ function GastosPage() {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarModalRetiro, setMostrarModalRetiro] = useState(false);
   const [retiros, setRetiros] = useState<RetiroSocio[]>([]);
+  const [retirosHistorial, setRetirosHistorial] = useState<RetiroSocio[]>([]);
+  const [loadingHistorialRetiros, setLoadingHistorialRetiros] = useState(false);
   const [formData, setFormData] = useState({
     fecha: format(new Date(), 'yyyy-MM-dd'),
     categoria: 'OTROS',
@@ -71,6 +74,7 @@ function GastosPage() {
   const finMes = useMemo(() => endOfMonth(fechaHoy), [fechaHoy]);
   const inicioSemana = useMemo(() => startOfWeek(fechaHoy, { weekStartsOn: 1 }), [fechaHoy]);
   const finSemana = useMemo(() => endOfWeek(fechaHoy, { weekStartsOn: 1 }), [fechaHoy]);
+  const inicioHistorialRetiros = useMemo(() => subDays(fechaHoy, 90), [fechaHoy]);
 
   const resetFormData = () => {
     setFormData({
@@ -88,6 +92,7 @@ function GastosPage() {
   useEffect(() => {
     cargarDatos();
     cargarRetiros();
+    cargarHistorialRetiros();
   }, []);
 
   const cargarDatos = async () => {
@@ -127,17 +132,33 @@ function GastosPage() {
     }
   };
 
+  const cargarHistorialRetiros = async () => {
+    try {
+      setLoadingHistorialRetiros(true);
+      const response = await retirosApi.obtenerTodos(
+        format(inicioHistorialRetiros, 'yyyy-MM-dd'),
+        format(fechaHoy, 'yyyy-MM-dd')
+      );
+      setRetirosHistorial(response.data || []);
+    } catch (err: any) {
+      console.error('Error al cargar historial de retiros:', err);
+    } finally {
+      setLoadingHistorialRetiros(false);
+    }
+  };
+
   const handleCrearRetiro = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
       setError(null);
-      
+      const montoRetiro = parseFloat(formRetiro.monto);
+
       await retirosApi.crear({
         fecha: formRetiro.fecha,
         hora: formRetiro.hora,
         cuentaBancaria: formRetiro.cuentaBancaria,
-        monto: parseFloat(formRetiro.monto),
+        monto: montoRetiro,
         descripcion: formRetiro.descripcion,
         observaciones: formRetiro.observaciones || undefined,
       });
@@ -153,6 +174,17 @@ function GastosPage() {
         observaciones: '',
       });
       await cargarRetiros();
+      await cargarHistorialRetiros();
+
+      // Notificar a los reportes que hay un nuevo retiro
+      console.log('GastosPage: Disparando evento retiroRegistrado...');
+      const evento = new CustomEvent('retiroRegistrado', { 
+        detail: { monto: montoRetiro, cuentaBancaria: formRetiro.cuentaBancaria },
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(evento);
+      console.log('GastosPage: Evento retiroRegistrado disparado');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Error al registrar retiro');
@@ -259,9 +291,7 @@ function GastosPage() {
       )}
 
       {loading && !resumen ? (
-        <div className="loading-container">
-          <div className="loading-spinner">Cargando...</div>
-        </div>
+        <Loading mensaje="Cargando información de gastos..." />
       ) : (
         <>
           {/* Cards de Resumen */}
@@ -331,7 +361,7 @@ function GastosPage() {
                       <div className="retiro-info">
                         <span className="retiro-label">Fecha y Hora:</span>
                         <span className="retiro-value">
-                          {format(new Date(retiro.fecha), 'dd/MM/yyyy')} - {format(new Date(retiro.createdAt), 'HH:mm')}
+                          {format(new Date(retiro.fecha), 'dd/MM/yyyy HH:mm')}
                         </span>
                       </div>
                       <div className="retiro-info">
@@ -357,6 +387,55 @@ function GastosPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Historial de Retiros */}
+          <div className="gastos-table-section" style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <h2 className="section-title" style={{ marginBottom: 0 }}>📋 Historial de Retiros (Últimos 90 días)</h2>
+              <button
+                className="btn-secondary btn-sm"
+                onClick={cargarHistorialRetiros}
+                disabled={loadingHistorialRetiros}
+              >
+                {loadingHistorialRetiros ? 'Actualizando...' : 'Actualizar'}
+              </button>
+            </div>
+            <div className="table-container" style={{ marginTop: 16 }}>
+              <table className="gastos-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Socio</th>
+                    <th>Monto</th>
+                    <th>Descripción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {retirosHistorial.length > 0 ? (
+                    retirosHistorial.slice(0, 50).map((retiro) => (
+                      <tr key={retiro.id}>
+                        <td>{format(new Date(retiro.fecha), 'dd/MM/yyyy HH:mm')}</td>
+                        <td>{retiro.cuentaBancaria}</td>
+                        <td className="monto-cell">{formatearMonto(retiro.monto)}</td>
+                        <td>{retiro.descripcion}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', color: '#9ca3af', padding: '20px' }}>
+                        No hay retiros registrados en los últimos 90 días
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {retirosHistorial.length > 50 && (
+              <div style={{ marginTop: 10, color: '#6b7280', fontSize: 12 }}>
+                Mostrando 50 de {retirosHistorial.length}. Ajustá el rango si necesitás ver más.
+              </div>
+            )}
           </div>
 
           {/* Tabla de Últimos Gastos */}

@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { GetReporteFinancieroUseCase } from '../../application/use-cases/reportes/get-reporte-financiero.use-case';
 import { GetReporteSociosUseCase } from '../../application/use-cases/reportes/get-reporte-socios.use-case';
 import { GetReporteGastosAvanzadoUseCase } from '../../application/use-cases/reportes/get-reporte-gastos-avanzado.use-case';
+import { parseLocalDateOnly } from '../../utils/date.utils';
 
 @ApiTags('Reportes')
 @Controller('reportes')
@@ -19,8 +20,8 @@ export class ReportesController {
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
   ) {
-    const inicio = fechaInicio ? new Date(fechaInicio) : undefined;
-    const fin = fechaFin ? new Date(fechaFin) : undefined;
+    const inicio = fechaInicio ? parseLocalDateOnly(fechaInicio) : undefined;
+    const fin = fechaFin ? parseLocalDateOnly(fechaFin) : undefined;
     return this.getReporteFinancieroUseCase.execute(inicio, fin);
   }
 
@@ -30,8 +31,8 @@ export class ReportesController {
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
   ) {
-    const inicio = fechaInicio ? new Date(fechaInicio) : undefined;
-    const fin = fechaFin ? new Date(fechaFin) : undefined;
+    const inicio = fechaInicio ? parseLocalDateOnly(fechaInicio) : undefined;
+    const fin = fechaFin ? parseLocalDateOnly(fechaFin) : undefined;
     return this.getReporteSociosUseCase.execute(inicio, fin);
   }
 
@@ -41,8 +42,8 @@ export class ReportesController {
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
   ) {
-    const inicio = fechaInicio ? new Date(fechaInicio) : undefined;
-    const fin = fechaFin ? new Date(fechaFin) : undefined;
+    const inicio = fechaInicio ? parseLocalDateOnly(fechaInicio) : undefined;
+    const fin = fechaFin ? parseLocalDateOnly(fechaFin) : undefined;
     return this.getReporteGastosAvanzadoUseCase.execute(inicio, fin);
   }
 }

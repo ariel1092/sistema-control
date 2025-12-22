@@ -39,21 +39,27 @@ export class MovimientoCuentaCorrienteCliente {
   }
 
   public esDebito(): boolean {
-    // Los débitos aumentan la deuda del cliente (facturas, ventas a cuenta corriente)
+    // Los débitos aumentan la deuda del cliente (facturas, ventas a cuenta corriente, cargos)
+    const tipo = String(this.tipo).trim().toUpperCase();
     return [
-      TipoMovimientoCC.FACTURA,
-      TipoMovimientoCC.NOTA_DEBITO,
-      TipoMovimientoCC.VENTA,
-    ].includes(this.tipo);
+      'FACTURA',
+      'NOTA_DEBITO',
+      'VENTA',
+      'CARGO',
+      'REMITO',
+    ].includes(tipo);
   }
 
   public esCredito(): boolean {
-    // Los créditos disminuyen la deuda (pagos)
+    // Los créditos disminuyen la deuda (pagos, reversos)
+    const tipo = String(this.tipo).trim().toUpperCase();
     return [
-      TipoMovimientoCC.PAGO_PARCIAL,
-      TipoMovimientoCC.PAGO_COMPLETO,
-      TipoMovimientoCC.NOTA_CREDITO,
-    ].includes(this.tipo);
+      'PAGO_PARCIAL',
+      'PAGO_COMPLETO',
+      'NOTA_CREDITO',
+      'REVERSO',
+      'PAGO',
+    ].includes(tipo);
   }
 
   public calcularSaldoActual(saldoAnterior: number): number {

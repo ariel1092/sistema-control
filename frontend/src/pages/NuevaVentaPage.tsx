@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useGlobalLoading } from '../context/LoadingContext';
 import { ventasApi } from '../services/api';
+import { formatearMoneda } from '../utils/formatters';
+import Loading from '../components/common/Loading';
 
 // Components
 import { ProductSearch } from '../components/ventas/ProductSearch';
@@ -12,6 +15,7 @@ import '../components/ventas/VentasComponents.css';
 
 const NuevaVentaPage: React.FC = () => {
     const { user } = useAuth();
+    const { showLoading, hideLoading } = useGlobalLoading();
 
     // -- ESTADO GLOBAL DE LA VENTA --
     const [items, setItems] = useState<any[]>([]);
@@ -58,6 +62,7 @@ const NuevaVentaPage: React.FC = () => {
         if (isCC && !client) return setError("Debe seleccionar un cliente para Cuenta Corriente");
 
         setLoading(true);
+        showLoading("Procesando venta...");
         setError(null);
 
         // CONSTRUCCIÓN DEL DTO EXACTO
@@ -92,11 +97,13 @@ const NuevaVentaPage: React.FC = () => {
             setError(err.response?.data?.message || "Error al procesar la venta");
         } finally {
             setLoading(false);
+            hideLoading();
         }
     };
 
     return (
         <div className="pos-layout">
+            {loading && <Loading fullScreen mensaje="Procesando venta..." />}
             {/* PANEL IZQUIERDO: OPERATIVO */}
             <div className="pos-left">
                 <ProductSearch onProductSelect={handleProductSelect} />
@@ -153,7 +160,7 @@ const NuevaVentaPage: React.FC = () => {
                     disabled={loading || items.length === 0 || (!isCC && remaining > 0)}
                     onClick={handleConfirm}
                 >
-                    {loading ? 'PROCESANDO...' : `CONFIRMAR($${total.toLocaleString()})`}
+                    {loading ? 'PROCESANDO...' : `CONFIRMAR (${formatearMoneda(total)})`}
                 </button>
 
             </div>

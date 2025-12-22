@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import StatusModal from '../common/StatusModal';
 
 interface ProductEditorProps {
     product: any;
@@ -9,6 +10,7 @@ interface ProductEditorProps {
 export const ProductEditor: React.FC<ProductEditorProps> = ({ product, onAdd, onCancel }) => {
     const [quantity, setQuantity] = useState<number>(1);
     const [price, setPrice] = useState<number>(product.precioVenta);
+    const [showError, setShowError] = useState(false);
     const qtyInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -21,7 +23,7 @@ export const ProductEditor: React.FC<ProductEditorProps> = ({ product, onAdd, on
     const handleAdd = () => {
         if (quantity <= 0) return;
         if (quantity > product.stockActual) {
-            alert("Stock insuficiente");
+            setShowError(true);
             return;
         }
 
@@ -43,6 +45,13 @@ export const ProductEditor: React.FC<ProductEditorProps> = ({ product, onAdd, on
 
     return (
         <div className="product-editor-panel">
+            <StatusModal 
+                show={showError}
+                type="error"
+                title="Stock insuficiente"
+                message={`No puedes agregar más de ${product.stockActual} unidades de este producto.`}
+                onClose={() => setShowError(false)}
+            />
             <div className="editor-header">
                 <h4>{product.nombre}</h4>
                 <span className="stock-info">Disponible: {product.stockActual}</span>

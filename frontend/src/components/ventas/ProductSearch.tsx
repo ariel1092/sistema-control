@@ -1,16 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { productosApi } from '../../services/api';
+import { productosApi, proveedoresApi } from '../../services/api';
+import { formatearMoneda } from '../../utils/formatters';
 import './VentasComponents.css';
 
 interface ProductSearchProps {
     onProductSelect: (product: any) => void;
 }
 
+interface Proveedor {
+    id: string;
+    nombre: string;
+}
+
 export const ProductSearch: React.FC<ProductSearchProps> = ({ onProductSelect }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<any[]>([]);
+    const [proveedores, setProveedores] = useState<Proveedor[]>([]);
     const [showResults, setShowResults] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
+
+    // Cargar proveedores al montar para tener los nombres disponibles
+    useEffect(() => {
+        proveedoresApi.obtenerTodos().then(res => {
+            setProveedores(res.data || []);
+        }).catch(err => console.error("Error cargando proveedores para búsqueda", err));
+    }, []);
 
     useEffect(() => {
         const timer = setTimeout(async () => {
@@ -77,14 +91,21 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onProductSelect })
                                 onClick={() => hasStock && handleSelect(p)}
                             >
                                 <div className="item-main">
-                                    <span className="item-code">{p.codigo}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span className="item-code">{p.codigo}</span>
+                                        <span className="provider-badge">
+                                            {proveedores.find(pr => pr.id === p.proveedorId)?.nombre || 'Sin Prov.'}
+                                        </span>
+                                    </div>
                                     <span className="item-name">{p.nombre}</span>
                                 </div>
                                 <div className="item-meta">
                                     <span className={`stock-badge ${!hasStock ? 'red' : lowStock ? 'yellow' : 'green'}`}>
                                         Stock: {p.stockActual}
                                     </span>
-                                    <span className="item-price">${p.precioVenta}</span>
+                                    <span className="item-price">
+                                        {formatearMoneda(p.precioVenta)}
+                                    </span>
                                 </div>
                             </li>
                         );

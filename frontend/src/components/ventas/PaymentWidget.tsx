@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { formatearMoneda } from '../../utils/formatters';
 
 interface PaymentWidgetProps {
     totalToPay: number;
@@ -35,10 +36,10 @@ export const PaymentWidget: React.FC<PaymentWidgetProps> = ({
     if (isCuentaCorriente) {
         return (
             <div className="payment-widget disabled">
-                <div className="cc-banner">
-                    <span>Venta en Cuenta Corriente</span>
-                    <strong>Total a Cargo: ${totalToPay.toLocaleString()}</strong>
-                </div>
+            <div className="cc-banner">
+                <span>Venta en Cuenta Corriente</span>
+                <strong>Total a Cargo: {formatearMoneda(totalToPay)}</strong>
+            </div>
             </div>
         );
     }
@@ -49,7 +50,7 @@ export const PaymentWidget: React.FC<PaymentWidgetProps> = ({
                 {payments.map((p, idx) => (
                     <div key={idx} className="payment-item">
                         <span>{p.tipo}</span>
-                        <strong>${p.monto.toLocaleString()}</strong>
+                        <strong>{formatearMoneda(p.monto)}</strong>
                         <button onClick={() => onRemovePayment(idx)}>&times;</button>
                     </div>
                 ))}
@@ -86,11 +87,11 @@ export const PaymentWidget: React.FC<PaymentWidgetProps> = ({
             <div className="payment-summary-footer">
                 <div className="summary-row">
                     <span>Total:</span>
-                    <span>${totalToPay.toLocaleString()}</span>
+                    <span>{formatearMoneda(totalToPay)}</span>
                 </div>
                 <div className={`summary-row remaining ${remaining === 0 ? 'ok' : 'pending'}`}>
                     <span>Restante:</span>
-                    <span>${remaining.toLocaleString()}</span>
+                    <span>{formatearMoneda(remaining)}</span>
                 </div>
             </div>
         </div>

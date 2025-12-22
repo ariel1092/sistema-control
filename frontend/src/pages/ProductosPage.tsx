@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { productosApi } from '../services/api';
+import { productosApi, proveedoresApi } from '../services/api';
 import { format } from 'date-fns';
+import { formatearMoneda } from '../utils/formatters';
+import { useGlobalLoading } from '../context/LoadingContext';
+import Loading from '../components/common/Loading';
+import StatusModal from '../components/common/StatusModal';
+import ProductoComparacionProveedores from '../components/ProductoComparacionProveedores';
 import './ProductosPage.css';
 
 interface Producto {
@@ -8,6 +13,7 @@ interface Producto {
   codigo: string;
   nombre: string;
   categoria: string;
+  proveedorId?: string;
   precioVenta: number;
   stockActual: number;
   stockMinimo: number;
@@ -15,10 +21,18 @@ interface Producto {
   descripcion?: string;
   marca?: string;
   precioCosto?: number;
+  descuento: number;
+  iva: number;
   codigoBarras?: string;
   activo: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+interface Proveedor {
+  id: string;
+  nombre: string;
+  descuento?: number;
 }
 
 interface MovimientoStock {
@@ -33,7 +47,22 @@ interface MovimientoStock {
 }
 
 function ProductosPage() {
+  const { showLoading, hideLoading } = useGlobalLoading();
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+
+  // Estado para la alerta profesional
+  const [statusModal, setStatusModal] = useState<{
+    show: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+  }>({
+    show: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoStock[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,7 +71,7 @@ function ProductosPage() {
 
   // Estados para filtros y búsqueda
   const [busqueda, setBusqueda] = useState('');
-  const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
+  const [filtroProveedor, setFiltroProveedor] = useState<string>('todos');
   const [filtroStock, setFiltroStock] = useState<string>('todos');
   const [vista, setVista] = useState<'lista' | 'alertas' | 'movimientos'>('lista');
 
@@ -53,12 +82,14 @@ function ProductosPage() {
   const [mostrarDescontarStock, setMostrarDescontarStock] = useState(false);
   const [mostrarAjuste, setMostrarAjuste] = useState(false);
   const [mostrarDetalle, setMostrarDetalle] = useState(false);
+  const [mostrarImportarExcel, setMostrarImportarExcel] = useState(false);
 
   // Estados para formularios
   const [formData, setFormData] = useState({
     codigo: '',
     nombre: '',
-    categoria: '',
+    categoria: 'General',
+    proveedorId: '',
     precioVenta: '',
     stockActual: '',
     stockMinimo: '',
@@ -66,8 +97,16 @@ function ProductosPage() {
     descripcion: '',
     marca: '',
     precioCosto: '',
+    descuento: '0',
+    iva: '21',
+    margenGanancia: '100',
     codigoBarras: '',
     activo: true,
+  });
+
+  const [importarData, setImportarData] = useState({
+    proveedorId: '',
+    file: null as File | null
   });
 
   const [stockData, setStockData] = useState({
@@ -99,7 +138,8 @@ function ProductosPage() {
         q: busquedaDebounced,
         page: paginaActual,
         limit: limitePorPagina,
-        activos: filtroStock === 'inactivos' ? false : (filtroStock === 'todos' ? undefined : true)
+        // Por defecto listamos activos; el filtro "Sin Stock / Stock Bajo" se resuelve local con `alertas`
+        activos: true,
       });
 
       const { data, total } = response.data;
@@ -110,7 +150,16 @@ function ProductosPage() {
     } finally {
       setLoading(false);
     }
-  }, [busquedaDebounced, paginaActual, limitePorPagina, filtroStock]);
+  }, [busquedaDebounced, paginaActual, limitePorPagina]);
+
+  const cargarProveedores = useCallback(async () => {
+    try {
+      const response = await proveedoresApi.obtenerTodos();
+      setProveedores(response.data || []);
+    } catch (err) {
+      console.error("Error al cargar proveedores", err);
+    }
+  }, []);
 
   // Cargar movimientos
   const cargarMovimientos = useCallback(async (productoId?: string) => {
@@ -127,26 +176,11 @@ function ProductosPage() {
 
   useEffect(() => {
     cargarProductos();
+    cargarProveedores();
     if (vista === 'movimientos') {
       cargarMovimientos();
     }
-  }, [cargarProductos, vista, cargarMovimientos]);
-
-  // Obtener categorías únicas (Solo si es necesario, pero ahora es difícil con paginación server-side)
-  // Mantendremos esto pero sabiendo que solo mostrará categorías de la página actual o precargadas
-  const categorias = useMemo(() => {
-    const cats = new Set(productos.map(p => p.categoria));
-    return Array.from(cats).sort();
-  }, [productos]);
-
-  // El filtrado ahora es principalmente server-side, pero podemos dejar un filtro rápido local para lo que ya bajó
-  const productosFiltrados = useMemo(() => {
-    let filtrados = productos;
-    if (filtroCategoria !== 'todas') {
-      filtrados = filtrados.filter(p => p.categoria === filtroCategoria);
-    }
-    return filtrados;
-  }, [productos, filtroCategoria]);
+  }, [cargarProductos, cargarProveedores, vista, cargarMovimientos]);
 
   // Estados para alertas
   const [alertas, setAlertas] = useState<{ sinStock: Producto[], stockBajo: Producto[] }>({ sinStock: [], stockBajo: [] });
@@ -164,13 +198,35 @@ function ProductosPage() {
     cargarAlertas();
   }, [cargarAlertas]);
 
-  const formatearMonto = (monto: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-    }).format(monto);
-  };
+  // Filtrado: búsqueda (server-side) + proveedor (local) + stock (usa alertas)
+  const productosFiltrados = useMemo(() => {
+    // Stock: si el usuario selecciona "Sin Stock" o "Stock Bajo", usamos el set de alertas (ya viene de backend)
+    // para que el filtro sea confiable y no dependa de paginación.
+    let base: Producto[] = productos;
+    if (filtroStock === 'sinStock') {
+      base = alertas.sinStock;
+    } else if (filtroStock === 'stockBajo') {
+      base = alertas.stockBajo;
+    }
+
+    // Si estamos usando alertas como fuente (sinStock/stockBajo), la búsqueda debe aplicarse localmente
+    // porque esos datos no pasan por el search/paginación.
+    let filtrados = base;
+    if (filtroStock !== 'todos' && busquedaDebounced.trim() !== '') {
+      const q = busquedaDebounced.trim().toLowerCase();
+      filtrados = filtrados.filter((p) => {
+        const codigo = (p.codigo || '').toLowerCase();
+        const nombre = (p.nombre || '').toLowerCase();
+        const marca = (p.marca || '').toLowerCase();
+        return codigo.includes(q) || nombre.includes(q) || marca.includes(q);
+      });
+    }
+
+    if (filtroProveedor !== 'todos') {
+      filtrados = filtrados.filter(p => p.proveedorId === filtroProveedor);
+    }
+    return filtrados;
+  }, [productos, alertas, filtroStock, filtroProveedor, busquedaDebounced]);
 
   const getEstadoStock = (producto: Producto) => {
     if (producto.stockActual === 0) return { texto: 'Sin Stock', clase: 'sin-stock' };
@@ -186,9 +242,12 @@ function ProductosPage() {
         ...formData,
         precioVenta: parseFloat(formData.precioVenta.toString()) || 0,
         precioCosto: formData.precioCosto ? parseFloat(formData.precioCosto.toString()) : undefined,
+        descuento: parseFloat(formData.descuento.toString()) || 0,
+        iva: parseFloat(formData.iva.toString()) || 21,
         stockActual: parseFloat(formData.stockActual.toString()) || 0,
         stockMinimo: parseFloat(formData.stockMinimo.toString()) || 0,
         codigoBarras: formData.codigoBarras || undefined,
+        proveedorId: formData.proveedorId || undefined,
       };
       await productosApi.crear(productoData);
       setSuccess('Producto creado exitosamente');
@@ -196,7 +255,8 @@ function ProductosPage() {
       setFormData({
         codigo: '',
         nombre: '',
-        categoria: '',
+        categoria: 'General',
+        proveedorId: '',
         precioVenta: '',
         stockActual: '',
         stockMinimo: '',
@@ -204,6 +264,9 @@ function ProductosPage() {
         descripcion: '',
         marca: '',
         precioCosto: '',
+        descuento: '0',
+        iva: '21',
+        margenGanancia: '100',
         codigoBarras: '',
         activo: true,
       });
@@ -224,6 +287,7 @@ function ProductosPage() {
         ...formData,
         precioVenta: parseFloat(formData.precioVenta.toString()) || 0,
         precioCosto: formData.precioCosto ? parseFloat(formData.precioCosto.toString()) : undefined,
+        descuento: parseFloat(formData.descuento.toString()) || 0,
         stockMinimo: parseFloat(formData.stockMinimo.toString()) || 0,
         codigoBarras: formData.codigoBarras || undefined,
       };
@@ -332,6 +396,7 @@ function ProductosPage() {
       codigo: producto.codigo,
       nombre: producto.nombre,
       categoria: producto.categoria,
+      proveedorId: producto.proveedorId || '',
       precioVenta: producto.precioVenta.toString(),
       stockActual: producto.stockActual.toString(),
       stockMinimo: producto.stockMinimo.toString(),
@@ -339,6 +404,9 @@ function ProductosPage() {
       descripcion: producto.descripcion || '',
       marca: producto.marca || '',
       precioCosto: producto.precioCosto?.toString() || '',
+      descuento: producto.descuento.toString(),
+      iva: producto.iva.toString(),
+      margenGanancia: String((producto as any).margenGanancia ?? '100'),
       codigoBarras: producto.codigoBarras || '',
       activo: producto.activo,
     });
@@ -352,6 +420,7 @@ function ProductosPage() {
       codigo: producto.codigo,
       nombre: producto.nombre,
       categoria: producto.categoria,
+      proveedorId: producto.proveedorId || '',
       precioVenta: producto.precioVenta.toString(),
       stockActual: producto.stockActual.toString(),
       stockMinimo: producto.stockMinimo.toString(),
@@ -359,6 +428,9 @@ function ProductosPage() {
       descripcion: producto.descripcion || '',
       marca: producto.marca || '',
       precioCosto: producto.precioCosto?.toString() || '',
+      descuento: producto.descuento.toString(),
+      iva: producto.iva.toString(),
+      margenGanancia: String((producto as any).margenGanancia ?? '100'),
       codigoBarras: producto.codigoBarras || '',
       activo: producto.activo,
     });
@@ -367,6 +439,14 @@ function ProductosPage() {
 
   return (
     <div className="productos-page">
+      <StatusModal 
+        show={statusModal.show}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        onClose={() => setStatusModal({ ...statusModal, show: false })}
+      />
+      {loading && productos.length > 0 && <Loading fullScreen mensaje="Procesando..." />}
       <div className="productos-header">
         <h1 className="page-title">📦 Gestión de Productos y Stock</h1>
         <p className="page-subtitle">Control completo de inventario y movimientos de stock</p>
@@ -421,13 +501,13 @@ function ProductosPage() {
             </div>
             <div className="filtro-group">
               <select
-                value={filtroCategoria}
-                onChange={(e) => setFiltroCategoria(e.target.value)}
+                value={filtroProveedor}
+                onChange={(e) => setFiltroProveedor(e.target.value)}
                 className="select-filtro"
               >
-                <option value="todas">Todas las categorías</option>
-                {categorias.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                <option value="todos">Todos los proveedores</option>
+                {proveedores.map(p => (
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
                 ))}
               </select>
             </div>
@@ -445,37 +525,10 @@ function ProductosPage() {
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 className="btn btn-secondary"
-                onClick={() => document.getElementById('file-upload')?.click()}
+                onClick={() => setMostrarImportarExcel(true)}
               >
                 📤 Importar Excel
               </button>
-              <input
-                type="file"
-                id="file-upload"
-                style={{ display: 'none' }}
-                accept=".xlsx, .xls"
-                onChange={async (e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    try {
-                      setLoading(true);
-                      const res = await productosApi.importarExcel(e.target.files[0]);
-                      const { procesados, creados, actualizados, errores } = res.data;
-                      let msg = `Proceso completado. Procesados: ${procesados}. Creados: ${creados}. Actualizados: ${actualizados}.`;
-                      if (errores.length > 0) msg += ` Errores: ${errores.length}`;
-                      alert(msg);
-                      if (errores.length > 0) console.error("Errores de importación:", errores);
-                      cargarProductos();
-                    } catch (err: any) {
-                      setError("Error al importar el archivo");
-                      console.error(err);
-                    } finally {
-                      setLoading(false);
-                      // Clear input
-                      e.target.value = '';
-                    }
-                  }
-                }}
-              />
               <button
                 className="btn btn-primary"
                 onClick={() => setMostrarCrear(true)}
@@ -487,16 +540,19 @@ function ProductosPage() {
 
           {/* Tabla de productos */}
           {loading && productos.length === 0 ? (
-            <div className="loading-container">Cargando productos...</div>
+            <Loading mensaje="Cargando productos..." />
           ) : productosFiltrados.length > 0 ? (
             <div className="table-responsive">
               <table className="productos-table">
                 <thead>
                   <tr>
-                    <th>Código</th>
-                    <th>Nombre</th>
-                    <th>Categoría</th>
-                    <th>Precio</th>
+                    <th>COD</th>
+                    <th>ART</th>
+                    <th>PL</th>
+                    <th>IVA</th>
+                    <th>DCTO</th>
+                    <th>VENTA</th>
+                    <th>Proveedor</th>
                     <th>Stock</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -505,6 +561,21 @@ function ProductosPage() {
                 <tbody>
                   {productosFiltrados.map((producto) => {
                     const estado = getEstadoStock(producto);
+                    
+                    // LÓGICA DE FERRETERÍA PROFESIONAL:
+                    // 1. PL (Precio Lista)
+                    const pl = producto.precioCosto || 0;
+                    
+                    // 2. IVA (PL + 21%)
+                    const precioConIva = pl * 1.21;
+                    
+                    // 3. DCTO (Precio con IVA - %Descuento del Proveedor)
+                    const descuentoPorcentaje = producto.descuento || 0;
+                    const precioCostoReal = precioConIva * (1 - descuentoPorcentaje / 100);
+                    
+                    // 4. VENTA (Costo Real * 1.6 de Margen)
+                    const precioVentaFinal = precioCostoReal * 1.6;
+
                     return (
                       <tr key={producto.id} className={!producto.activo ? 'inactivo' : ''}>
                         <td>{producto.codigo}</td>
@@ -514,10 +585,15 @@ function ProductosPage() {
                             {producto.marca && <span className="producto-marca">{producto.marca}</span>}
                           </div>
                         </td>
-                        <td>{producto.categoria}</td>
-                        <td>{formatearMonto(producto.precioVenta)}</td>
+                        <td>{formatearMoneda(pl)}</td>
+                        <td>{formatearMoneda(precioConIva)}</td>
+                        <td>{formatearMoneda(precioCostoReal)}</td>
+                        <td className="col-venta-destacada">
+                          <strong>{formatearMoneda(precioVentaFinal)}</strong>
+                        </td>
+                        <td>{proveedores.find(p => p.id === producto.proveedorId)?.nombre || 'Sin Proveedor'}</td>
                         <td>
-                          <div className="stock-info">
+                            <div className="stock-info">
                             <span className="stock-cantidad">{producto.stockActual}</span>
                             <span className="stock-unidad">{producto.unidadMedida}</span>
                             <span className="stock-minimo">(mín: {producto.stockMinimo})</span>
@@ -585,7 +661,7 @@ function ProductosPage() {
             </div>
           ) : (
             <div className="alert alert-info">
-              {busqueda || filtroCategoria !== 'todas' || filtroStock !== 'todos'
+              {busqueda || filtroProveedor !== 'todos' || filtroStock !== 'todos'
                 ? 'No se encontraron productos con los filtros aplicados'
                 : 'No hay productos registrados. Crea el primero haciendo clic en "Nuevo Producto"'}
             </div>
@@ -669,7 +745,7 @@ function ProductosPage() {
       {vista === 'movimientos' && (
         <div className="productos-content">
           {loading && movimientos.length === 0 ? (
-            <div className="loading-container">Cargando movimientos...</div>
+            <Loading mensaje="Cargando movimientos..." />
           ) : movimientos.length > 0 ? (
             <div className="table-responsive">
               <table className="movimientos-table">
@@ -729,7 +805,7 @@ function ProductosPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label-required">Nombre *</label>
+                  <label className="form-label-required">Artículo *</label>
                   <input
                     type="text"
                     value={formData.nombre}
@@ -740,7 +816,27 @@ function ProductosPage() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label-required">Categoría *</label>
+                  <label className="form-label-required">Proveedor *</label>
+                  <select
+                    value={formData.proveedorId}
+                    onChange={(e) => {
+                      const pId = e.target.value;
+                      const prov = proveedores.find(p => p.id === pId);
+                      setFormData({ 
+                        ...formData, 
+                        proveedorId: pId,
+                        descuento: prov?.descuento?.toString() || '0'
+                      });
+                    }}
+                  >
+                    <option value="">Seleccione un proveedor</option>
+                    {proveedores.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Categoría</label>
                   <input
                     type="text"
                     value={formData.categoria}
@@ -760,7 +856,7 @@ function ProductosPage() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label-required">Precio de Venta *</label>
+                  <label className="form-label-required">Precio VENTA *</label>
                   <input
                     type="number"
                     value={formData.precioVenta}
@@ -769,12 +865,39 @@ function ProductosPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Precio de Costo</label>
+                  <label>PL (Precio Lista)</label>
                   <input
                     type="number"
                     value={formData.precioCosto}
                     onChange={(e) => setFormData({ ...formData, precioCosto: e.target.value })}
                     placeholder="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Descuento (DCTO %)</label>
+                  <input
+                    type="number"
+                    value={formData.descuento}
+                    onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>IVA (%)</label>
+                  <input
+                    type="number"
+                    value={formData.iva}
+                    onChange={(e) => setFormData({ ...formData, iva: e.target.value })}
+                    placeholder="21"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Margen de Ganancia (%)</label>
+                  <input
+                    type="number"
+                    value={formData.margenGanancia}
+                    onChange={(e) => setFormData({ ...formData, margenGanancia: e.target.value })}
+                    placeholder="100"
                   />
                 </div>
               </div>
@@ -866,7 +989,7 @@ function ProductosPage() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label-required">Nombre *</label>
+                  <label className="form-label-required">Artículo *</label>
                   <input
                     type="text"
                     value={formData.nombre}
@@ -894,7 +1017,7 @@ function ProductosPage() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label-required">Precio de Venta *</label>
+                  <label className="form-label-required">Precio VENTA *</label>
                   <input
                     type="number"
                     value={formData.precioVenta}
@@ -1012,15 +1135,19 @@ function ProductosPage() {
                   </div>
                 )}
                 <div className="info-row">
-                  <span className="info-label">Precio de Venta:</span>
-                  <span className="info-value">{formatearMonto(productoSeleccionado.precioVenta)}</span>
+                  <span className="info-label">Precio VENTA:</span>
+                  <span className="info-value">{formatearMoneda(productoSeleccionado.precioVenta)}</span>
                 </div>
                 {productoSeleccionado.precioCosto && (
                   <div className="info-row">
-                    <span className="info-label">Precio de Costo:</span>
-                    <span className="info-value">{formatearMonto(productoSeleccionado.precioCosto)}</span>
+                    <span className="info-label">PL (Precio Lista):</span>
+                    <span className="info-value">{formatearMoneda(productoSeleccionado.precioCosto)}</span>
                   </div>
                 )}
+                <div className="info-row">
+                  <span className="info-label">Margen de Ganancia (MG):</span>
+                  <span className="info-value">{proveedores.find(p => p.id === productoSeleccionado.proveedorId)?.descuento || 0}% desc. / {(productoSeleccionado as any).margenGanancia || 100}% MG</span>
+                </div>
                 <div className="info-row">
                   <span className="info-label">Stock Actual:</span>
                   <span className={`info-value ${getEstadoStock(productoSeleccionado).clase}`}>
@@ -1044,6 +1171,8 @@ function ProductosPage() {
                   </div>
                 )}
               </div>
+
+              <ProductoComparacionProveedores productoId={productoSeleccionado.id} />
 
               <div className="producto-acciones-stock">
                 <button
@@ -1293,6 +1422,81 @@ function ProductosPage() {
                 }
               >
                 {loading ? 'Guardando...' : 'Aplicar Ajuste'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Importar Excel */}
+      {mostrarImportarExcel && (
+        <div className="modal-overlay" onClick={() => setMostrarImportarExcel(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>📤 Importar Productos desde Excel</h2>
+              <button className="modal-close" onClick={() => setMostrarImportarExcel(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="alert alert-info">
+                Seleccione el proveedor al que pertenecen los productos del Excel. 
+                Se aplicará automáticamente el descuento del proveedor.
+              </div>
+              <div className="form-group">
+                <label className="form-label-required">Proveedor *</label>
+                <select
+                  value={importarData.proveedorId}
+                  onChange={(e) => setImportarData({ ...importarData, proveedorId: e.target.value })}
+                >
+                  <option value="">Seleccione un proveedor</option>
+                  {proveedores.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} ({p.descuento || 0}% desc.)</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label-required">Archivo Excel *</label>
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  onChange={(e) => setImportarData({ ...importarData, file: e.target.files ? e.target.files[0] : null })}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setMostrarImportarExcel(false)}>
+                Cancelar
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  if (!importarData.file || !importarData.proveedorId) return;
+                  try {
+                    setLoading(true);
+                    showLoading("Procesando importación de productos... Por favor espere.");
+                    const res = await productosApi.importarExcel(importarData.file, importarData.proveedorId);
+                    const { procesados, creados, actualizados, errores } = res.data;
+                    let msg = `Proceso completado. Procesados: ${procesados}. Creados: ${creados}. Actualizados: ${actualizados}.`;
+                    if (errores.length > 0) msg += ` Errores: ${errores.length}`;
+                    
+                    setStatusModal({
+                      show: true,
+                      type: 'success',
+                      title: 'Importación Finalizada',
+                      message: msg
+                    });
+
+                    setMostrarImportarExcel(false);
+                    setImportarData({ proveedorId: '', file: null });
+                    cargarProductos();
+                  } catch (err: any) {
+                    setError("Error al importar el archivo");
+                  } finally {
+                    setLoading(false);
+                    hideLoading();
+                  }
+                }}
+                disabled={loading || !importarData.file || !importarData.proveedorId}
+              >
+                {loading ? 'Procesando...' : 'Iniciar Importación'}
               </button>
             </div>
           </div>

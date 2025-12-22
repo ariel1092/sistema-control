@@ -28,3 +28,7 @@ MovimientoVentaSchema.index({ ventaId: 1, fecha: -1 });
 MovimientoVentaSchema.index({ ventaId: 1, tipoEvento: 1, fecha: -1 });
 
 
+
+
+
+

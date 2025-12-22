@@ -36,6 +36,7 @@ export class Proveedor {
     public readonly observaciones?: string,
     public readonly plazoCuentaCorriente?: string,
     public readonly descuento?: number,
+    public readonly margenGanancia: number = 100,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date(),
   ) {
@@ -64,6 +65,7 @@ export class Proveedor {
     observaciones?: string;
     plazoCuentaCorriente?: string;
     descuento?: number;
+    margenGanancia?: number;
   }): void {
     if (params.nombre !== undefined) {
       (this as any).nombre = params.nombre;
@@ -110,6 +112,9 @@ export class Proveedor {
     if (params.descuento !== undefined) {
       (this as any).descuento = params.descuento;
     }
+    if (params.margenGanancia !== undefined) {
+      (this as any).margenGanancia = params.margenGanancia;
+    }
     this.validate();
   }
 
@@ -129,6 +134,7 @@ export class Proveedor {
     observaciones?: string;
     plazoCuentaCorriente?: string;
     descuento?: number;
+    margenGanancia?: number;
   }): Proveedor {
     return new Proveedor(
       undefined,
@@ -147,6 +153,7 @@ export class Proveedor {
       params.observaciones,
       params.plazoCuentaCorriente,
       params.descuento,
+      params.margenGanancia || 100,
     );
   }
 }

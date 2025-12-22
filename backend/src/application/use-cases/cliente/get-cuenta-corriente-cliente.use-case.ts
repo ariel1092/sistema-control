@@ -51,9 +51,6 @@ export class GetCuentaCorrienteClienteUseCase {
       throw new Error('Cliente no encontrado');
     }
 
-    // Obtener deuda total (saldo actual)
-    const deudaTotal = await this.movimientoRepository.getUltimoSaldo(clienteId);
-
     // Obtener facturas pendientes
     const facturasPendientes = await this.facturaRepository.findPendientes(clienteId);
     const hoy = new Date();
@@ -76,18 +73,48 @@ export class GetCuentaCorrienteClienteUseCase {
 
     // Obtener movimientos de cuenta corriente (con auditoría completa)
     const movimientos = await this.movimientoRepository.findByCliente(clienteId);
-    const movimientosDto = movimientos.map((mov) => ({
-      id: mov.id!,
-      tipo: mov.tipo,
-      fecha: mov.fecha,
-      monto: mov.monto,
-      descripcion: mov.descripcion,
-      saldoAnterior: mov.saldoAnterior,
-      saldoActual: mov.saldoActual,
-      observaciones: mov.observaciones,
-      usuarioId: mov.usuarioId,
-      createdAt: mov.createdAt, // Fecha y hora exacta del movimiento (auditoría)
-    }));
+
+    /**
+     * REGLA DE ORO:
+     * Históricamente hubo movimientos guardados con `saldoAnterior/saldoActual` incorrectos (por bug).
+     * Para no romper UI ni deuda total, recalculamos el saldo en tiempo real desde los movimientos,
+     * usando `createdAt` como orden cronológico.
+     */
+    const movimientosChron = [...movimientos].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+    let saldo = 0;
+    const saldoPorMovimientoId = new Map<string, { saldoAnterior: number; saldoActual: number }>();
+    for (const mov of movimientosChron) {
+      const saldoAnteriorCalc = saldo;
+      if ((mov as any).esDebito?.()) {
+        saldo = saldo + mov.monto;
+      } else if ((mov as any).esCredito?.()) {
+        saldo = saldo - mov.monto;
+      } else {
+        // Fallback defensivo: si el tipo no está clasificado, no alteramos saldo
+        saldo = saldo;
+      }
+      saldoPorMovimientoId.set(mov.id!, { saldoAnterior: saldoAnteriorCalc, saldoActual: saldo });
+    }
+
+    const deudaTotal = saldo;
+
+    const movimientosDto = movimientos.map((mov) => {
+      const calc = saldoPorMovimientoId.get(mov.id!) || { saldoAnterior: mov.saldoAnterior, saldoActual: mov.saldoActual };
+      return {
+        id: mov.id!,
+        tipo: mov.tipo,
+        fecha: mov.fecha,
+        monto: mov.monto,
+        descripcion: mov.descripcion,
+        saldoAnterior: calc.saldoAnterior,
+        saldoActual: calc.saldoActual,
+        observaciones: mov.observaciones,
+        usuarioId: mov.usuarioId,
+        createdAt: mov.createdAt, // Fecha y hora exacta del movimiento (auditoría)
+      };
+    });
 
     return {
       clienteId,

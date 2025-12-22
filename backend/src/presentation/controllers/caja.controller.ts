@@ -8,6 +8,7 @@ import { CrearMovimientoCajaUseCase } from '../../application/use-cases/caja/cre
 import { AbrirCajaDto } from '../../application/dtos/caja/abrir-caja.dto';
 import { CerrarCajaDto } from '../../application/dtos/caja/cerrar-caja.dto';
 import { CrearMovimientoCajaDto } from '../../application/dtos/caja/movimiento-caja.dto';
+import { parseLocalDateOnly } from '../../utils/date.utils';
 
 @ApiTags('Caja')
 @Controller('caja')
@@ -23,7 +24,7 @@ export class CajaController {
   @Get('resumen')
   @ApiOperation({ summary: 'Obtener resumen del día' })
   getResumen(@Query('fecha') fecha?: string) {
-    const fechaDate = fecha ? new Date(fecha) : new Date();
+    const fechaDate = fecha ? parseLocalDateOnly(fecha) : new Date();
     return this.getResumenDiaUseCase.execute(fechaDate);
   }
 
@@ -57,8 +58,8 @@ export class CajaController {
   @Get('historial')
   @ApiOperation({ summary: 'Obtener historial de caja' })
   getHistorial(@Query('fechaInicio') fechaInicio?: string, @Query('fechaFin') fechaFin?: string) {
-    const inicio = fechaInicio ? new Date(fechaInicio) : undefined;
-    const fin = fechaFin ? new Date(fechaFin) : undefined;
+    const inicio = fechaInicio ? parseLocalDateOnly(fechaInicio) : undefined;
+    const fin = fechaFin ? parseLocalDateOnly(fechaFin) : undefined;
     return this.getHistorialCajaUseCase.execute(inicio, fin);
   }
 }

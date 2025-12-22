@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import logoImg from '../assets/loading.jpg';
 import './Layout.css';
 
 interface LayoutProps {
@@ -45,14 +46,9 @@ function Layout({ children }: LayoutProps) {
         <div className="sidebar-header">
           <div className="sidebar-logo-container">
             <img
-              src="/logo.png"
+              src={logoImg}
               alt="Ferretería San Geronimo"
               className="sidebar-logo-img"
-              onError={(e) => {
-                // Si no existe el logo, mostrar texto
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
             />
             <h1 className="sidebar-logo">FERRETERÍA<br />SAN GERONIMO</h1>
           </div>
@@ -150,6 +146,15 @@ function Layout({ children }: LayoutProps) {
           >
             <span className="nav-icon">🏭</span>
             <span className="nav-text">Proveedores</span>
+          </NavLink>
+
+          <NavLink
+            to="/configuracion/recargos"
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            onClick={closeSidebar}
+          >
+            <span className="nav-icon">⚙️</span>
+            <span className="nav-text">Configuración</span>
           </NavLink>
         </nav>
 

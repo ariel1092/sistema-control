@@ -40,3 +40,7 @@ AuditoriaEventoSchema.index({ entidad: 1, entidadId: 1, createdAt: -1 });
 AuditoriaEventoSchema.index({ 'metadatos.usuarioId': 1, createdAt: -1 });
 
 
+
+
+
+

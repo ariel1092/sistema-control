@@ -93,36 +93,29 @@ export class Venta {
   }
 
   public calcularRecargo(): number {
-    // Calcular recargo de crédito o débito si hay métodos de pago con recargo
+    /**
+     * Recargos por tarjeta (débito/crédito).
+     *
+     * Regla (nuevo estándar):
+     * - `mp.monto` se interpreta como MONTO FINAL cobrado por ese medio (incluye recargo si aplica).
+     * - `mp.recargo` es el % aplicado a ese medio.
+     * - El recargo total se calcula desde los propios métodos de pago (no desde `venta.recargoCredito`).
+     *
+     * Nota: para ventas sin detalles, el total se valida contra suma de pagos y no contra `calcularTotal()`.
+     */
+    if (this.detalles.length === 0) return 0;
+
     let recargoTotal = 0;
 
-    const subtotal = this.calcularSubtotal();
-    const descuento = this.calcularDescuento();
-    const subtotalConDescuento = subtotal - descuento;
-
-    // Si no hay detalles, los recargos ya están incluidos en el monto de los métodos de pago
-    if (this.detalles.length === 0) {
-      // Para ventas sin productos, el recargo ya está calculado en el monto
-      // Solo retornar 0 ya que el monto final ya incluye el recargo
-      return 0;
-    }
-
-    // Recargo de crédito (aplicado al total de la venta)
-    const tieneCredito = this.metodosPago.some(mp => mp.tipo === 'CREDITO');
-    if (tieneCredito && this.recargoCredito > 0) {
-      recargoTotal += subtotalConDescuento * (this.recargoCredito / 100);
-    }
-
-    // Recargo de débito (aplicado al monto específico del débito)
-    this.metodosPago.forEach(mp => {
-      if (mp.tipo === 'DEBITO' && mp.recargo && mp.recargo > 0) {
-        // Recargo aplicado proporcionalmente al monto del débito
-        if (subtotalConDescuento > 0) {
-          const proporcion = mp.monto / subtotalConDescuento;
-          recargoTotal += subtotalConDescuento * proporcion * (mp.recargo / 100);
-        }
+    for (const mp of this.metodosPago) {
+      const tipo = String(mp.tipo);
+      const pct = mp.recargo || 0;
+      if ((tipo === 'DEBITO' || tipo === 'CREDITO') && pct > 0) {
+        const divisor = 1 + pct / 100;
+        const base = mp.monto / divisor;
+        recargoTotal += (mp.monto - base);
       }
-    });
+    }
 
     return recargoTotal;
   }

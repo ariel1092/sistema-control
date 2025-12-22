@@ -88,9 +88,11 @@ export const productosApi = {
   buscar: (termino: string, params?: { limit?: number; page?: number }) =>
     api.get('/productos', { params: { q: termino, ...params } }),
   obtenerTodos: (params?: { q?: string; all?: boolean; activos?: boolean; limit?: number; page?: number }) =>
-    api.get(`/productos`, { params: { all: true, ...params } }),
+    api.get(`/productos`, { params: { ...params } }),
   obtenerPorId: (id: string) =>
     api.get(`/productos/${id}`),
+  obtenerPreciosProveedores: (productoId: string, config?: any) =>
+    api.get(`/productos/${productoId}/precios-proveedores`, config),
   obtenerAlertas: () =>
     api.get('/productos/alertas'),
   obtenerMovimientos: (productoId?: string, tipo?: string, fechaInicio?: string, fechaFin?: string) => {
@@ -113,10 +115,11 @@ export const productosApi = {
     api.post(`/productos/${id}/stock/descontar`, data),
   ajustarInventario: (id: string, data: { cantidad: number; motivo: string }) =>
     api.post(`/productos/${id}/stock/ajustar`, data),
-  importarExcel: (file: File) => {
+  importarExcel: (file: File, proveedorId?: string) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/productos/importar-excel', formData, {
+    const params = proveedorId ? `?proveedorId=${proveedorId}` : '';
+    return api.post(`/productos/importar-excel${params}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -236,6 +239,14 @@ export const reportesApi = {
     api.get(`/reportes/socios?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
   gastosAvanzado: (fechaInicio: string, fechaFin: string) =>
     api.get(`/reportes/gastos-avanzado?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
+};
+
+// API de Configuración
+export const configuracionApi = {
+  obtenerRecargos: () =>
+    api.get('/configuracion/recargos'),
+  actualizarRecargos: (data: { recargoDebitoPct: number; recargoCreditoPct: number }, usuarioId?: string) =>
+    api.put(`/configuracion/recargos${usuarioId ? `?usuarioId=${usuarioId}` : ''}`, data),
 };
 
 export default api;

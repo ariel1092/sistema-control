@@ -20,6 +20,11 @@ export class CreateProductoDto {
   @IsString()
   categoria: string;
 
+  @ApiProperty({ description: 'ID del proveedor', required: false })
+  @IsOptional()
+  @IsString()
+  proveedorId?: string;
+
   @ApiProperty({ description: 'Precio de venta', minimum: 0 })
   @IsNumber()
   @Min(0)
@@ -63,6 +68,18 @@ export class CreateProductoDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  @ApiProperty({ description: 'Descuento aplicado', required: false, default: 0 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  descuento?: number;
+
+  @ApiProperty({ description: 'IVA aplicado (ej: 21)', required: false, default: 21 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  iva?: number;
 
   @ApiProperty({ description: 'Código de barras', required: false })
   @IsOptional()

@@ -151,6 +151,18 @@
   font-size: 17px;
 }
 
+.col-venta-destacada {
+  background: #fdf2f2;
+  color: #b91c1c !important;
+  font-size: 18px !important;
+  border-left: 2px solid #fee2e2;
+  border-right: 2px solid #fee2e2;
+}
+
+.col-venta-destacada strong {
+  color: #b91c1c;
+}
+
 .productos-table tbody tr {
   background: #ffffff;
   transition: all 0.2s;
@@ -701,9 +713,7 @@
 }
 
 .loading-container {
-  text-align: center;
-  padding: 40px;
-  color: #6b7280;
+  display: none;
 }
 
 /* Paginación */

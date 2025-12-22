@@ -38,6 +38,36 @@ export class GetReporteFinancieroUseCase {
     const ventasCompletadas = ventas.filter((v) => v.estado === EstadoVenta.COMPLETADA);
     const totalIngresos = ventasCompletadas.reduce((sum, v) => sum + v.calcularTotal(), 0);
 
+    // Auditoría / trazabilidad: detalle de ventas incluidas en el total
+    const ventasIncluidas = ventasCompletadas.map((v) => {
+      const subtotal = v.calcularSubtotal();
+      const descuento = v.calcularDescuento();
+      const recargo = v.calcularRecargo();
+      const total = v.calcularTotal();
+      return {
+        id: v.id!,
+        numero: v.numero,
+        fecha: v.fecha,
+        estado: v.estado,
+        vendedorId: v.vendedorId,
+        clienteNombre: v.clienteNombre,
+        clienteDNI: v.clienteDNI,
+        subtotal,
+        descuento,
+        recargo,
+        total,
+        metodosPago: (v.metodosPago || []).map((mp: any) => ({
+          tipo: mp.tipo,
+          monto: mp.monto,
+          recargo: mp.recargo,
+          cuentaBancaria: mp.cuentaBancaria,
+          referencia: mp.referencia,
+        })),
+      };
+    });
+
+    const controlSumaVentas = ventasIncluidas.reduce((sum, v) => sum + (v.total || 0), 0);
+
     // 2. Calcular gastos
     const totalGastos = gastos.reduce((sum, g) => sum + g.monto, 0);
 
@@ -187,6 +217,9 @@ export class GetReporteFinancieroUseCase {
       fechaInicio: inicio,
       fechaFin: fin,
       totalIngresos,
+      cantidadVentasIncluidas: ventasIncluidas.length,
+      controlSumaVentas,
+      ventasIncluidas,
       totalGastos,
       totalRetiros,
       balanceGeneral,
