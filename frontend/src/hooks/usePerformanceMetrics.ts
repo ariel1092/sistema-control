@@ -11,14 +11,8 @@ export const usePerformanceMetrics = (pageLabel = 'page'): void => {
   useEffect(() => {
     if (typeof window === 'undefined' || !window.performance) return;
 
-    const entries = performance.getEntriesByType('navigation') as
-      | PerformanceNavigationTiming[]
-      | undefined;
-
-    const nav =
-      (entries && entries[0]) ||
-      (performance.timing as PerformanceNavigationTiming | undefined);
-
+    const entries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const nav = entries?.[0];
     if (!nav) return;
 
     const requestStart = nav.requestStart;

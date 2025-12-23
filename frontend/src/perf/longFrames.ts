@@ -68,7 +68,8 @@ const findNearestInteraction = (startTime: number): string | undefined => {
 };
 
 const logIfSlow = (entry: LongFrameEntry) => {
-  if (process.env.NODE_ENV !== 'development') return;
+  const isDev = typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV;
+  if (!isDev) return;
   if (entry.duration < CRITICAL_FRAME_THRESHOLD) return;
   const interaction = entry.interactionName || 'sin_interaccion';
   const cause = entry.classification || 'causa desconocida';

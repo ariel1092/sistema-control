@@ -85,7 +85,8 @@ const toPerfEntry = (entry: PerformanceEventTiming): PerfInteractionEntry | null
 };
 
 const logIfSlow = (e: PerfInteractionEntry) => {
-  if (process.env.NODE_ENV !== 'development') return;
+  const isDev = typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV;
+  if (!isDev) return;
   if (e.totalDuration <= 200) return;
   console.warn(
     `⚠️ INP crítico en "${e.name}" (${e.totalDuration.toFixed(

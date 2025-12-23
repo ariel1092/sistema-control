@@ -15,7 +15,8 @@ declare global {
 }
 
 const warnIfSlow = (flow: UserFlow) => {
-  if (process.env.NODE_ENV !== 'development') return;
+  const isDev = typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV;
+  if (!isDev) return;
   if (flow.duration <= 1000) return;
   console.warn(
     `⚠️ Flujo lento: ${flow.name} ${flow.duration.toFixed(1)}ms (ruta=${flow.route})`,

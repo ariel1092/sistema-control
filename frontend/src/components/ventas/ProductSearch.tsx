@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { productosApi, proveedoresApi } from '../../services/api';
 import { formatearMoneda } from '../../utils/formatters';
 import './VentasComponents.css';
-import { startFlow, endFlow } from '../../perf/userTiming';
+import { startFlow } from '../../perf/userTiming';
 
 interface ProductSearchProps {
     onProductSelect: (product: any) => void;
