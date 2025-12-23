@@ -6,6 +6,10 @@ import { IProductoRepository } from '../../ports/producto.repository.interface';
 import { RegistrarVentaStockUseCase } from '../productos/registrar-venta-stock.use-case';
 import { RegistrarMovimientoVentaUseCase } from './registrar-movimiento-venta.use-case';
 import { RegistrarMovimientoCCVentaUseCase } from './registrar-movimiento-cc-venta.use-case';
+import { RegistrarAuditoriaUseCase } from '../auditoria/registrar-auditoria.use-case';
+import { RegistrarMovimientosCajaVentaUseCase } from '../caja/registrar-movimientos-caja-venta.use-case';
+import { IConfiguracionRecargosRepository } from '../../ports/configuracion-recargos.repository.interface';
+import { Connection } from 'mongoose';
 import { Producto } from '../../../domain/entities/producto.entity';
 import { TipoMetodoPago } from '../../../domain/enums/tipo-metodo-pago.enum';
 import { TipoComprobante } from '../../../domain/enums/tipo-comprobante.enum';
@@ -28,6 +32,7 @@ describe('CreateVentaUseCase', () => {
       findByNumero: jest.fn(),
       findById: jest.fn(),
       findAll: jest.fn(),
+      findByVendedor: jest.fn(),
     };
 
     const mockProductoRepository = {
@@ -38,6 +43,7 @@ describe('CreateVentaUseCase', () => {
 
     const mockRegistrarVentaStockUseCase = {
       execute: jest.fn(),
+      executeBatch: jest.fn(),
     };
 
     const mockRegistrarMovimientoVentaUseCase = {
@@ -47,6 +53,25 @@ describe('CreateVentaUseCase', () => {
     const mockRegistrarMovimientoCCVentaUseCase = {
       ejecutarCargoPorVenta: jest.fn(),
     };
+
+    const mockRegistrarAuditoriaUseCase = {
+      execute: jest.fn(),
+    };
+
+    const mockRegistrarMovimientosCajaVentaUseCase = {
+      registrarPorVenta: jest.fn(),
+    };
+
+    const mockConfiguracionRecargosRepository = {
+      get: jest.fn().mockResolvedValue({ recargoDebitoPct: 0, recargoCreditoPct: 0 }),
+    };
+
+    const mockConnection = {
+      startSession: jest.fn().mockResolvedValue({
+        withTransaction: async (fn: any) => fn(),
+        endSession: jest.fn(),
+      }),
+    } as unknown as Connection;
 
     const mockCacheManager = {
       del: jest.fn(),
@@ -76,6 +101,22 @@ describe('CreateVentaUseCase', () => {
         {
           provide: RegistrarMovimientoCCVentaUseCase,
           useValue: mockRegistrarMovimientoCCVentaUseCase,
+        },
+        {
+          provide: RegistrarAuditoriaUseCase,
+          useValue: mockRegistrarAuditoriaUseCase,
+        },
+        {
+          provide: RegistrarMovimientosCajaVentaUseCase,
+          useValue: mockRegistrarMovimientosCajaVentaUseCase,
+        },
+        {
+          provide: 'IConfiguracionRecargosRepository',
+          useValue: mockConfiguracionRecargosRepository,
+        },
+        {
+          provide: 'DatabaseConnection',
+          useValue: mockConnection,
         },
         {
           provide: CACHE_MANAGER,
@@ -141,6 +182,8 @@ describe('CreateVentaUseCase', () => {
 
       // Mock de findByNumero - no existe venta con ese número
       ventaRepository.findByNumero.mockResolvedValue(null);
+      // Mock de duplicados
+      (ventaRepository as any).findByVendedor.mockResolvedValue([]);
 
       // Mock de save - retorna venta guardada
       ventaRepository.save.mockImplementation(async (venta) => {
@@ -149,7 +192,7 @@ describe('CreateVentaUseCase', () => {
       });
 
       // Mock de registrar stock
-      registrarVentaStockUseCase.execute.mockResolvedValue(undefined);
+      (registrarVentaStockUseCase as any).executeBatch.mockResolvedValue(undefined);
 
       // Mock de registrar movimiento
       registrarMovimientoVentaUseCase.execute.mockResolvedValue(undefined);
@@ -170,17 +213,20 @@ describe('CreateVentaUseCase', () => {
       expect(result.calcularTotal()).toBe(300);
 
       // Verificar que se llamó a findByIds con los IDs correctos
-      expect(productoRepository.findByIds).toHaveBeenCalledWith(['producto-id-1']);
+      expect(productoRepository.findByIds).toHaveBeenCalledWith(
+        ['producto-id-1'],
+        expect.anything(),
+      );
 
       // Verificar que se guardó la venta
       expect(ventaRepository.save).toHaveBeenCalledTimes(1);
 
       // Verificar que se descontó el stock
-      expect(registrarVentaStockUseCase.execute).toHaveBeenCalledWith(
-        'producto-id-1',
-        2,
+      expect((registrarVentaStockUseCase as any).executeBatch).toHaveBeenCalledWith(
+        [{ productoId: 'producto-id-1', cantidad: 2 }],
         'venta-id-1',
         vendedorId,
+        expect.anything(),
       );
 
       // Verificar que se invalidó el caché
@@ -231,7 +277,7 @@ describe('CreateVentaUseCase', () => {
         VentaApplicationException,
       );
       await expect(useCase.execute(createVentaDto, vendedorId)).rejects.toThrow(
-        /Stock insuficiente/,
+        /stock insuficiente/i,
       );
 
       // Verificar que NO se guardó la venta
@@ -273,7 +319,7 @@ describe('CreateVentaUseCase', () => {
         VentaApplicationException,
       );
       await expect(useCase.execute(createVentaDto, vendedorId)).rejects.toThrow(
-        /Productos no encontrados/,
+        /productos no fueron encontrados|algunos productos no fueron encontrados/i,
       );
     });
 
