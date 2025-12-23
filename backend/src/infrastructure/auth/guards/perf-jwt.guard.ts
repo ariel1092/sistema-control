@@ -1,6 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { performance } from 'perf_hooks';
 import { addTime } from '../../performance/performance.storage';
 
@@ -12,7 +11,6 @@ import { addTime } from '../../performance/performance.storage';
 export class PerfJwtGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -24,7 +22,7 @@ export class PerfJwtGuard implements CanActivate {
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.slice('Bearer '.length);
         const secret =
-          this.configService.get<string>('JWT_SECRET') ||
+          process.env.JWT_SECRET ||
           'your-secret-key-change-in-production';
 
         try {
