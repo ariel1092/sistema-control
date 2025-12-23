@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request, UseInterceptors, UploadedFile, MethodNotAllowedException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ImportarProductosExcelUseCase } from '../../application/use-cases/productos/importar-productos-excel.use-case';
@@ -52,6 +52,13 @@ export class ProductosController {
     }
     console.log('Procesando archivo excel...');
     return this.importarProductosExcelUseCase.execute(file.buffer, proveedorId);
+  }
+
+  @Get('importar-excel')
+  @ApiOperation({ summary: 'Importar productos desde Excel (solo POST)' })
+  importExcelGet() {
+    // Evita que GET /productos/importar-excel caiga en @Get(':id') y devuelva un 404 confuso.
+    throw new MethodNotAllowedException('Use POST /productos/importar-excel con multipart/form-data (file)');
   }
 
   @Post('importar-preview')

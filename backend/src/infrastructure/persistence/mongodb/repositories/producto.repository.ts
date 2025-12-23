@@ -42,6 +42,15 @@ export class ProductoRepository implements IProductoRepository {
     return productoDoc ? ProductoMapper.toDomain(productoDoc) : null;
   }
 
+  async findByCodigos(codigos: string[], options?: { session?: any }): Promise<Producto[]> {
+    if (!codigos || codigos.length === 0) return [];
+    const session = options?.session;
+    const docs = await this.productoModel
+      .find({ codigo: { $in: codigos } }, null, { session })
+      .exec();
+    return docs.map((d) => ProductoMapper.toDomain(d));
+  }
+
   async search(termino: string, limit: number = 50, skip: number = 0): Promise<{ data: Producto[], total: number }> {
     const filter = {
       $or: [
@@ -143,6 +152,43 @@ export class ProductoRepository implements IProductoRepository {
       throw new Error(
         `No se pudo descontar stock para todos los productos (actualizados ${(res as any)?.modifiedCount ?? 0}/${ops.length}).`,
       );
+    }
+  }
+
+  async bulkUpsertByCodigo(
+    productos: Producto[],
+    options?: { session?: any },
+  ): Promise<void> {
+    if (!productos || productos.length === 0) return;
+    const session = options?.session;
+    const now = new Date();
+
+    // Procesar en chunks para no generar un bulk gigantesco
+    const chunkSize = 500;
+    for (let i = 0; i < productos.length; i += chunkSize) {
+      const chunk = productos.slice(i, i + chunkSize);
+
+      const ops = chunk.map((p) => {
+        const doc = ProductoMapper.toPersistence(p);
+        // Nunca setear _id en updates
+        delete (doc as any)._id;
+        return {
+          updateOne: {
+            filter: { codigo: p.codigo },
+            update: {
+              $set: {
+                ...doc,
+                // BulkWrite no garantiza timestamps automáticos: seteamos updatedAt manualmente
+                updatedAt: now,
+              },
+              $setOnInsert: { createdAt: now },
+            },
+            upsert: true,
+          },
+        };
+      });
+
+      await this.productoModel.bulkWrite(ops as any, { session });
     }
   }
 }

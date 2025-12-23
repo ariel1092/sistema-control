@@ -48,6 +48,9 @@ export class ImportarProductosExcelUseCase {
                 console.log(`Cabeceras detectadas: ${Object.keys(data[0]).join(', ')}`);
             }
 
+            // Acumular por código para evitar N+1 y permitir bulkWrite
+            const rowsByCodigo = new Map<string, { row: any; fila: number }>();
+
             for (const rawRow of data) {
                 // Ignorar filas vacías o que parecen ser de relleno
                 if (!rawRow || Object.keys(rawRow).length < 2) continue;
@@ -119,59 +122,85 @@ export class ImportarProductosExcelUseCase {
                         }
                         continue;
                     }
+                    // Guardar/overwite por código (si el Excel repite códigos, gana la última fila)
+                    rowsByCodigo.set(codigo, { row: { ...row, __meta: { proveedorId, porcentajeDescuento, precioVentaCalculado, precioCosto, iva, nombre, categoria } }, fila: procesados });
+                } catch (error: any) {
+                    errores.push({ fila: procesados, error: error.message });
+                }
+            }
 
-                    const existente = await this.productoRepository.findByCodigo(codigo);
+            // === BULK (elimina N+1) ===
+            const codigos = Array.from(rowsByCodigo.keys());
+            if (codigos.length === 0) continue;
 
+            // Traer existentes en batch (en chunks por seguridad)
+            const existentes: Producto[] = [];
+            const chunkSize = 1000;
+            for (let i = 0; i < codigos.length; i += chunkSize) {
+                const chunk = codigos.slice(i, i + chunkSize);
+                const found = await this.productoRepository.findByCodigos(chunk);
+                existentes.push(...found);
+            }
+            const existentesMap = new Map(existentes.map((p) => [p.codigo, p]));
+
+            const productosParaUpsert: Producto[] = [];
+            for (const [codigo, payload] of rowsByCodigo.entries()) {
+                const row = payload.row;
+                const meta = row.__meta || {};
+                const existente = existentesMap.get(codigo);
+
+                try {
                     if (existente) {
                         const actualizado = new Producto(
                             existente.id,
                             existente.codigo,
-                            nombre,
-                            categoria,
-                            proveedorId || existente.proveedorId,
-                            precioVentaCalculado, // Usar el calculado por el sistema
+                            meta.nombre,
+                            meta.categoria,
+                            meta.proveedorId || existente.proveedorId,
+                            meta.precioVentaCalculado,
                             row['stockactual'] !== undefined ? parseFloat(row['stockactual']) : existente.stockActual,
                             row['stockminimo'] !== undefined ? parseFloat(row['stockminimo']) : existente.stockMinimo,
                             row['unidadmedida'] || row['unidad'] || existente.unidadMedida,
                             row['activo'] !== undefined ? String(row['activo']).toLowerCase() === 'true' || row['activo'] === true : existente.activo,
-                            porcentajeDescuento, // El % del proveedor o del excel
-                            iva || existente.iva,
+                            meta.porcentajeDescuento,
+                            meta.iva || existente.iva,
                             row['descripcion'] || existente.descripcion,
                             row['marca'] || existente.marca,
-                            precioCosto || existente.precioCosto,
+                            meta.precioCosto || existente.precioCosto,
                             row['codigobarras'] || row['barras'] || existente.codigoBarras,
                             existente.createdAt,
                             new Date(),
                         );
-
-                        await this.productoRepository.update(actualizado);
+                        productosParaUpsert.push(actualizado);
                         actualizados++;
                     } else {
                         const nuevo = Producto.crear({
                             codigo,
-                            nombre,
-                            categoria,
-                            proveedorId,
-                            precioVenta: precioVentaCalculado, // Usar el calculado por el sistema
+                            nombre: meta.nombre,
+                            categoria: meta.categoria,
+                            proveedorId: meta.proveedorId,
+                            precioVenta: meta.precioVentaCalculado,
                             stockActual: parseFloat(row['stockactual']) || 0,
                             stockMinimo: parseFloat(row['stockminimo']) || 0,
                             unidadMedida: row['unidadmedida'] || row['unidad'] || 'UN',
                             descripcion: row['descripcion'],
                             marca: row['marca'],
                             codigoBarras: row['codigobarras'] || row['barras'],
-                            precioCosto: precioCosto || 0,
-                            descuento: porcentajeDescuento,
-                            iva: iva,
+                            precioCosto: meta.precioCosto || 0,
+                            descuento: meta.porcentajeDescuento,
+                            iva: meta.iva,
                             activo: true,
                         });
-
-                        await this.productoRepository.save(nuevo);
+                        productosParaUpsert.push(nuevo);
                         creados++;
                     }
-                } catch (error: any) {
-                    errores.push({ fila: procesados, error: error.message });
+                } catch (e: any) {
+                    errores.push({ fila: payload.fila, error: e.message });
                 }
             }
+
+            // 1 bulkWrite (chunked) para todos los productos de la hoja
+            await this.productoRepository.bulkUpsertByCodigo(productosParaUpsert);
         }
 
         return { procesados, creados, actualizados, errores };
