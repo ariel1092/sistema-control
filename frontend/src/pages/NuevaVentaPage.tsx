@@ -63,6 +63,29 @@ const NuevaVentaPage: React.FC = () => {
         setItems(newItems);
     };
 
+    const handleQtyChange = (index: number, delta: number) => {
+        setItems((prev) => {
+            const next = [...prev];
+            const item = next[index];
+            if (!item) return prev;
+
+            const current = Number(item.cantidad || 0);
+            const desired = current + delta;
+            const min = 1;
+            const max = item.stockMaximo !== undefined ? Number(item.stockMaximo) : Number.POSITIVE_INFINITY;
+            const clamped = Math.max(min, Math.min(desired, max));
+            if (clamped === current) return prev;
+
+            const precio = Number(item.precioUnitario || 0);
+            next[index] = {
+                ...item,
+                cantidad: clamped,
+                subtotal: clamped * precio,
+            };
+            return next;
+        });
+    };
+
     const handleClientSelect = (c: any | null) => {
         setClient(c);
         setIsCC(false); // Reset CC switch when client changes
@@ -147,7 +170,7 @@ const NuevaVentaPage: React.FC = () => {
                     />
                 )}
 
-                <SalesGrid items={items} onRemove={handleRemoveItem} />
+                <SalesGrid items={items} onRemove={handleRemoveItem} onQtyChange={handleQtyChange} />
             </div>
 
             {/* PANEL DERECHO: FINANCIERO */}
@@ -186,13 +209,15 @@ const NuevaVentaPage: React.FC = () => {
                     isCuentaCorriente={isCC}
                 />
 
-                <button
-                    className="btn-confirm-pos"
-                    disabled={loading || items.length === 0 || (!isCC && remaining > 0)}
-                    onClick={handleConfirm}
-                >
-                    {loading ? 'PROCESANDO...' : `CONFIRMAR (${formatearMoneda(total)})`}
-                </button>
+                <div className="pos-sticky-confirm">
+                    <button
+                        className="btn-confirm-pos"
+                        disabled={loading || items.length === 0 || (!isCC && remaining > 0)}
+                        onClick={handleConfirm}
+                    >
+                        {loading ? 'PROCESANDO...' : `CONFIRMAR (${formatearMoneda(total)})`}
+                    </button>
+                </div>
 
             </div>
         </div>

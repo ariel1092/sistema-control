@@ -10,13 +10,15 @@
 
 /* INPUTS */
 .pos-input {
-    padding: 10px;
+    padding: 12px;
     border: 1px solid var(--pos-border);
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 16px; /* evita zoom en iOS */
     outline: none;
     transition: all 0.2s;
     width: 100%;
+    min-height: 44px; /* tap target */
+    box-sizing: border-box;
 }
 
 .pos-input:focus {
@@ -32,6 +34,8 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    min-height: 44px; /* tap target */
+    font-size: 16px;
 }
 
 .btn-pos.primary {
@@ -50,7 +54,7 @@
 }
 
 .btn-pos.small {
-    padding: 8px 12px;
+    padding: 10px 12px;
 }
 
 /* SEARCH COMPONENT */
@@ -242,6 +246,78 @@
     overflow: hidden;
 }
 
+.sales-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+}
+
+.sale-card {
+    border: 1px solid var(--pos-border);
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sale-card-title {
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--pos-text);
+}
+
+.sale-card-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: #475569;
+}
+
+.sale-card-qty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qty-btn {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--pos-border);
+    background: #f8fafc;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.qty-value {
+    min-width: 44px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 16px;
+}
+
+.sale-card-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-delete-mobile {
+    flex: 1;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    color: #b91c1c;
+    font-weight: 800;
+    font-size: 16px;
+}
+
 .grid-header,
 .grid-row {
     display: grid;
@@ -288,6 +364,12 @@
     color: #cbd5e1;
     cursor: pointer;
     font-size: 18px;
+}
+
+.btn-icon-delete {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 8px;
 }
 
 .btn-icon-delete:hover {
@@ -718,28 +800,29 @@
 
 /* LAYOUT */
 .pos-layout {
+    /* MOBILE-FIRST: una sola columna */
     display: flex;
+    flex-direction: column;
     width: 100%;
-    height: calc(100vh - 60px);
+    min-height: calc(100vh - 60px);
     background: #f1f5f9;
-    padding: 15px;
-    gap: 15px;
+    padding: 12px;
+    gap: 12px;
     box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .pos-left {
-    flex: 2;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
 }
 
 .pos-right {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    min-width: 320px;
+    gap: 12px;
+    min-width: 0;
 }
 
 .pos-error-toast {
@@ -786,7 +869,7 @@
     font-size: 16px;
     font-weight: 700;
     cursor: pointer;
-    margin-top: auto;
+    min-height: 56px; /* acción principal */
 }
 
 .btn-confirm-pos:disabled {
@@ -796,4 +879,99 @@
 
 .btn-confirm-pos:hover:not(:disabled) {
     background: #1e293b;
+}
+
+/* Sticky CTA (mobile) */
+.pos-sticky-confirm {
+    position: sticky;
+    bottom: 0;
+    padding: 10px 0 0 0;
+    background: linear-gradient(to top, rgba(241,245,249,1) 70%, rgba(241,245,249,0));
+}
+
+/* MOBILE tweaks: reemplazar grid por cards */
+@media (max-width: 767px) {
+    .grid-header,
+    .grid-row,
+    .grid-footer {
+        display: none;
+    }
+
+    .grid-content {
+        overflow: visible;
+        min-height: auto;
+    }
+
+    .sales-grid-container {
+        border: none;
+        background: transparent;
+    }
+
+    .payment-widget {
+        padding: 14px;
+    }
+
+    .add-payment-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .add-payment-row select {
+        width: 100%;
+        font-size: 16px;
+    }
+
+    .add-payment-row .btn-pos.small {
+        width: 100%;
+    }
+
+    .editor-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .qty-input,
+    .price-input {
+        width: 100%;
+    }
+
+    .editor-actions {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .editor-actions .btn-pos {
+        flex: 1;
+    }
+}
+
+/* DESKTOP (>=768px): mantener layout original */
+@media (min-width: 768px) {
+    .pos-layout {
+        flex-direction: row;
+        height: calc(100vh - 60px);
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .pos-left {
+        flex: 2;
+        gap: 15px;
+    }
+
+    .pos-right {
+        flex: 1;
+        gap: 15px;
+        min-width: 320px;
+    }
+
+    .pos-sticky-confirm {
+        position: static;
+        padding: 0;
+        background: transparent;
+    }
+
+    .sales-cards {
+        display: none;
+    }
 }

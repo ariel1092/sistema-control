@@ -70,6 +70,7 @@ export const PaymentWidget: React.FC<PaymentWidgetProps> = ({
                     </select>
                     <input
                         type="number"
+                        inputMode="decimal"
                         className="pos-input"
                         placeholder={`Restante: $${remaining}`}
                         value={amount}

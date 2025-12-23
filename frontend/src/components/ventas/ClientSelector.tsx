@@ -115,6 +115,7 @@ export const ClientSelector: React.FC<ClientSelectorProps> = ({ onClientSelect, 
                             value={searchTerm}
                             onChange={handleSearch}
                             onFocus={() => mode === 'REGISTERED' && cargarClientes()}
+                            inputMode="search"
                         />
                         {searchTerm.length >= 2 && !loadingClients && searchResults.length === 0 && (
                             <div className="client-empty-state">Sin resultados</div>

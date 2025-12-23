@@ -63,6 +63,7 @@ export const ProductEditor: React.FC<ProductEditorProps> = ({ product, onAdd, on
                     <input
                         ref={qtyInputRef}
                         type="number"
+                        inputMode="numeric"
                         className="pos-input qty-input"
                         min="1"
                         max={product.stockActual}
@@ -76,6 +77,7 @@ export const ProductEditor: React.FC<ProductEditorProps> = ({ product, onAdd, on
                     <label>Precio Unit.</label>
                     <input
                         type="number"
+                        inputMode="decimal"
                         className="pos-input price-input"
                         value={price}
                         onChange={(e) => setPrice(parseFloat(e.target.value))}

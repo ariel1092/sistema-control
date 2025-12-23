@@ -79,6 +79,7 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onProductSelect })
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     autoFocus
+                    inputMode="search"
                 />
             </div>
 
