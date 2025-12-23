@@ -19,6 +19,7 @@ import { CancelarVentaUseCase } from '../../application/use-cases/ventas/cancela
 import { CajaModule } from '../caja/caja.module';
 import { RegistrarMovimientosCajaVentaUseCase } from '../../application/use-cases/caja/registrar-movimientos-caja-venta.use-case';
 import { ConfiguracionModule } from '../configuracion/configuracion.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ConfiguracionModule } from '../configuracion/configuracion.module';
       { name: DetalleVentaMongo.name, schema: DetalleVentaSchema },
       { name: MovimientoVentaMongo.name, schema: MovimientoVentaSchema },
     ]),
+    AuthModule,
     ProductosModule,
     ClientesModule,
     AuditoriaModule,

@@ -52,12 +52,17 @@ export const MovimientoCajaSchema = SchemaFactory.createForClass(MovimientoCajaM
 // Índices para búsquedas y anti-duplicado por venta
 MovimientoCajaSchema.index({ cierreCajaId: 1, createdAt: -1 });
 MovimientoCajaSchema.index({ ventaId: 1, origen: 1 });
+// Índice único (parcial) para evitar duplicados de movimientos por venta en origen VENTA/REVERSO_VENTA,
+// sin afectar movimientos MANUAL (donde ventaId/metodoPago pueden estar ausentes).
 MovimientoCajaSchema.index(
   { ventaId: 1, metodoPago: 1, origen: 1 },
-  { unique: true, partialFilterExpression: { origen: 'VENTA' } },
-);
-MovimientoCajaSchema.index(
-  { ventaId: 1, metodoPago: 1, origen: 1 },
-  { unique: true, partialFilterExpression: { origen: 'REVERSO_VENTA' } },
+  {
+    unique: true,
+    partialFilterExpression: {
+      origen: { $in: ['VENTA', 'REVERSO_VENTA'] },
+      ventaId: { $exists: true },
+      metodoPago: { $exists: true },
+    },
+  },
 );
 

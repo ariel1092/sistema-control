@@ -25,6 +25,7 @@ import { ProductoMongo, ProductoSchema } from '../../infrastructure/persistence/
 import { MovimientoStockMongo, MovimientoStockSchema } from '../../infrastructure/persistence/mongodb/schemas/movimiento-stock.schema';
 import { PrecioProveedorProductoMongo, PrecioProveedorProductoSchema } from '../../infrastructure/persistence/mongodb/schemas/precio-proveedor-producto.schema';
 import { GetComparacionPreciosProveedorPorProductoUseCase } from '../../application/use-cases/precios/get-comparacion-precios-proveedor-por-producto.use-case';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { GetComparacionPreciosProveedorPorProductoUseCase } from '../../applicat
       { name: MovimientoStockMongo.name, schema: MovimientoStockSchema },
       { name: PrecioProveedorProductoMongo.name, schema: PrecioProveedorProductoSchema },
     ]),
+    AuthModule,
     forwardRef(() => ProveedoresModule),
   ],
   controllers: [ProductosController, ProductosPreciosProveedoresController],

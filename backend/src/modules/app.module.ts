@@ -22,7 +22,6 @@ import { HealthController } from '../presentation/controllers/health.controller'
 import { IndexController } from '../presentation/controllers/index.controller';
 import { PerformanceInterceptor } from '../presentation/interceptors/performance.interceptor';
 import { PerformanceContextMiddleware } from '../presentation/middleware/performance-context.middleware';
-import { PerfJwtGuard } from '../infrastructure/auth/guards/perf-jwt.guard';
 
 @Module({
   imports: [
@@ -61,7 +60,6 @@ import { PerfJwtGuard } from '../infrastructure/auth/guards/perf-jwt.guard';
       provide: APP_INTERCEPTOR,
       useClass: PerformanceInterceptor,
     },
-    PerfJwtGuard,
   ],
 })
 export class AppModule implements NestModule {

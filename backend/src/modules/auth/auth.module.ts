@@ -8,6 +8,7 @@ import { LoginUseCase } from '../../application/use-cases/auth/login.use-case';
 import { RegisterUseCase } from '../../application/use-cases/auth/register.use-case';
 import { UsuarioRepository } from '../../infrastructure/persistence/mongodb/repositories/usuario.repository';
 import { UsuarioMongo, UsuarioSchema } from '../../infrastructure/persistence/mongodb/schemas/usuario.schema';
+import { PerfJwtGuard } from '../../infrastructure/auth/guards/perf-jwt.guard';
 
 @Module({
   imports: [
@@ -35,8 +36,10 @@ import { UsuarioMongo, UsuarioSchema } from '../../infrastructure/persistence/mo
     },
     LoginUseCase,
     RegisterUseCase,
+    PerfJwtGuard,
   ],
-  exports: [LoginUseCase, RegisterUseCase, 'IUsuarioRepository'],
+  // Exportamos JwtModule y el guard para que otros módulos (Caja/Ventas/Productos) puedan usar PerfJwtGuard
+  exports: [JwtModule, LoginUseCase, RegisterUseCase, 'IUsuarioRepository', PerfJwtGuard],
 })
 export class AuthModule {}
 

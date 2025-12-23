@@ -11,6 +11,7 @@ import { CerrarCajaUseCase } from '../../application/use-cases/caja/cerrar-caja.
 import { GetHistorialCajaUseCase } from '../../application/use-cases/caja/get-historial-caja.use-case';
 import { CrearMovimientoCajaUseCase } from '../../application/use-cases/caja/crear-movimiento-caja.use-case';
 import { RegistrarMovimientosCajaVentaUseCase } from '../../application/use-cases/caja/registrar-movimientos-caja-venta.use-case';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RegistrarMovimientosCajaVentaUseCase } from '../../application/use-case
       { name: CierreCajaMongo.name, schema: CierreCajaSchema },
       { name: MovimientoCajaMongo.name, schema: MovimientoCajaSchema },
     ]),
+    AuthModule,
   ],
   controllers: [CajaController],
   providers: [

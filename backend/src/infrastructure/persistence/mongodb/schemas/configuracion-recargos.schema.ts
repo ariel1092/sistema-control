@@ -24,8 +24,7 @@ export class ConfiguracionRecargosMongo {
 
 export const ConfiguracionRecargosSchema = SchemaFactory.createForClass(ConfiguracionRecargosMongo);
 
-// Índice único del singleton
-ConfiguracionRecargosSchema.index({ key: 1 }, { unique: true });
+// Nota: `key` ya tiene { unique: true, index: true } en @Prop; evitar índice duplicado.
 
 
 
