@@ -77,8 +77,19 @@ export const ventasApi = {
     api.get(`/ventas?fecha=${fecha}`),
   obtenerTransferencias: (socio: string, fechaInicio: string, fechaFin: string) =>
     api.get(`/ventas/transferencias?socio=${socio}&fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`),
-  crear: (data: any) =>
-    api.post('/ventas', data),
+  crear: async (data: any) => {
+    const res = await api.post('/ventas', data);
+    // Capturar Server-Timing (si CORS lo expone) para correlación con User Timing
+    try {
+      if (typeof window !== 'undefined') {
+        const st = (res.headers as any)?.['server-timing'];
+        (window as any).__lastVentaServerTiming = st;
+      }
+    } catch {
+      // no-op
+    }
+    return res;
+  },
   cancelar: (id: string, motivo: string) =>
     api.post(`/ventas/${id}/cancelar`, { motivo }),
 };

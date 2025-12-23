@@ -191,7 +191,7 @@ export class CreateVentaUseCase {
       const detalles: DetalleVenta[] = [];
       if (dto.items && dto.items.length > 0) {
         const productoIds = dto.items.map((item) => item.productoId);
-        const productos = await this.productoRepository.findByIds(productoIds);
+        const productos = await this.productoRepository.findByIds(productoIds, { session });
 
         if (productos.length !== productoIds.length) {
           throw new VentaApplicationException('Algunos productos no fueron encontrados en la base de datos', 404);
@@ -277,9 +277,13 @@ export class CreateVentaUseCase {
       const ventaGuardada = await this.ventaRepository.save(venta, { session });
 
       if (!esPresupuesto && detalles.length > 0) {
-        await Promise.all(detalles.map((detalle) =>
-          this.registrarVentaStockUseCase.execute(detalle.productoId, detalle.cantidad, ventaGuardada.id!, vendedorId, { session })
-        ));
+        // Eliminamos N+1: stock + movimientos_stock en batch dentro de la misma transacción
+        await this.registrarVentaStockUseCase.executeBatch(
+          detalles.map((d) => ({ productoId: d.productoId, cantidad: d.cantidad })),
+          ventaGuardada.id!,
+          vendedorId,
+          { session },
+        );
       }
 
       // 2.5 Registrar movimientos de caja por venta (uno por método de pago, pagos mixtos)

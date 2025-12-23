@@ -29,6 +29,14 @@ export class MovimientoStockRepository implements IMovimientoStockRepository {
     }
   }
 
+  async saveMany(movimientos: MovimientoStock[], options?: { session?: any }): Promise<MovimientoStock[]> {
+    const session = options?.session;
+    if (!movimientos || movimientos.length === 0) return [];
+    const docs = movimientos.map((m) => MovimientoStockMapper.toPersistence(m));
+    const created = await this.movimientoStockModel.insertMany(docs, { session });
+    return created.map((d) => MovimientoStockMapper.toDomain(d));
+  }
+
   async findById(id: string): Promise<MovimientoStock | null> {
     if (!id || !Types.ObjectId.isValid(id)) {
       return null;

@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { DatabaseModule } from './database/database.module';
 import { CacheModule } from './cache/cache.module';
 import { VentasModule } from './ventas/ventas.module';
@@ -20,6 +20,9 @@ import { ComprobantesFiscalesModule } from './comprobantes-fiscales/comprobantes
 import { ConfiguracionModule } from './configuracion/configuracion.module';
 import { HealthController } from '../presentation/controllers/health.controller';
 import { IndexController } from '../presentation/controllers/index.controller';
+import { PerformanceInterceptor } from '../presentation/interceptors/performance.interceptor';
+import { PerformanceContextMiddleware } from '../presentation/middleware/performance-context.middleware';
+import { PerfJwtGuard } from '../infrastructure/auth/guards/perf-jwt.guard';
 
 @Module({
   imports: [
@@ -54,6 +57,15 @@ import { IndexController } from '../presentation/controllers/index.controller';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: PerformanceInterceptor,
+    },
+    PerfJwtGuard,
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(PerformanceContextMiddleware).forRoutes('*');
+  }
+}

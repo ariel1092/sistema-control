@@ -30,3 +30,4 @@ export const POSHeader: React.FC<POSHeaderProps> = ({ vendedor, numeroVenta }) =
 
 
 
+

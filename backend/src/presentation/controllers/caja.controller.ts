@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, BadRequestException, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { GetResumenDiaUseCase } from '../../application/use-cases/caja/get-resumen-dia.use-case';
 import { AbrirCajaUseCase } from '../../application/use-cases/caja/abrir-caja.use-case';
@@ -9,6 +9,7 @@ import { AbrirCajaDto } from '../../application/dtos/caja/abrir-caja.dto';
 import { CerrarCajaDto } from '../../application/dtos/caja/cerrar-caja.dto';
 import { CrearMovimientoCajaDto } from '../../application/dtos/caja/movimiento-caja.dto';
 import { parseLocalDateOnly } from '../../utils/date.utils';
+import { PerfJwtGuard } from '../../infrastructure/auth/guards/perf-jwt.guard';
 
 @ApiTags('Caja')
 @Controller('caja')
@@ -23,6 +24,7 @@ export class CajaController {
 
   @Get('resumen')
   @ApiOperation({ summary: 'Obtener resumen del día' })
+  @UseGuards(PerfJwtGuard)
   getResumen(@Query('fecha') fecha?: string) {
     const fechaDate = fecha ? parseLocalDateOnly(fecha) : new Date();
     return this.getResumenDiaUseCase.execute(fechaDate);

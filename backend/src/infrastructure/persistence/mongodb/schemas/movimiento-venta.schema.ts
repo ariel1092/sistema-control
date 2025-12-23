@@ -32,3 +32,4 @@ MovimientoVentaSchema.index({ ventaId: 1, tipoEvento: 1, fecha: -1 });
 
 
 
+

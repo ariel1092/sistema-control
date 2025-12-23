@@ -12,6 +12,8 @@ import { SalesGrid } from '../components/ventas/SalesGrid';
 import { ClientSelector } from '../components/ventas/ClientSelector';
 import { PaymentWidget } from '../components/ventas/PaymentWidget';
 import '../components/ventas/VentasComponents.css';
+import { withInteractionTracking } from '../perf/eventTiming';
+import { startFlow, endFlow, mark, measure } from '../perf/userTiming';
 
 const NuevaVentaPage: React.FC = () => {
     const { user } = useAuth();
@@ -35,10 +37,20 @@ const NuevaVentaPage: React.FC = () => {
     const totalPaid = useMemo(() => payments.reduce((acc, p) => acc + p.monto, 0), [payments]);
     const remaining = Math.max(0, total - totalPaid);
 
-    // -- HANDLERS --
-    const handleProductSelect = (product: any) => {
-        setSelectedProduct(product);
+    // Utilidad: ejecutar después del siguiente paint para no bloquear el frame del click
+    const runAfterNextPaint = (fn: () => void) => {
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => setTimeout(fn, 0));
+        } else {
+            setTimeout(fn, 0);
+        }
     };
+
+    // -- HANDLERS --
+    const handleProductSelect = withInteractionTracking('producto_modal_open', (product: any) => {
+        setSelectedProduct(product);
+        endFlow('producto_modal_open_flujo');
+    });
 
     const handleAddItem = (item: any) => {
         setItems([...items, item]);
@@ -56,7 +68,8 @@ const NuevaVentaPage: React.FC = () => {
         setIsCC(false); // Reset CC switch when client changes
     };
 
-    const handleConfirm = async () => {
+    const handleConfirm = withInteractionTracking('venta_confirmar_click', async () => {
+        startFlow('venta_confirmar_flujo');
         if (items.length === 0) return setError("El carrito está vacío");
         if (!isCC && remaining > 0) return setError("El pago no está completo");
         if (isCC && !client) return setError("Debe seleccionar un cliente para Cuenta Corriente");
@@ -65,41 +78,59 @@ const NuevaVentaPage: React.FC = () => {
         showLoading("Procesando venta...");
         setError(null);
 
-        // CONSTRUCCIÓN DEL DTO EXACTO
-        const saleDTO = {
-            vendedorId: user?.id,
-            items: items.map(i => ({
-                productoId: i.productoId,
-                cantidad: i.cantidad,
-                precioUnitario: i.precioUnitario
-            })),
-            clienteDNI: client?.dni,
-            clienteNombre: client ? `${client.nombre} ${client.apellido} ` : undefined,
-            esCuentaCorriente: isCC,
-            metodosPago: isCC
-                ? [{ type: 'CUENTA_CORRIENTE', monto: total }] // Backend derived type
-                : payments,
-            tipoComprobante: 'REMITO', // Default por ahora
-            observaciones: 'Venta POS'
-        };
+        // Deferir el trabajo pesado (creación de DTO + llamada) a después del próximo paint
+        runAfterNextPaint(async () => {
+            // CONSTRUCCIÓN DEL DTO EXACTO
+            const saleDTO = {
+                vendedorId: user?.id,
+                items: items.map(i => ({
+                    productoId: i.productoId,
+                    cantidad: i.cantidad,
+                    precioUnitario: i.precioUnitario
+                })),
+                clienteDNI: client?.dni,
+                clienteNombre: client ? `${client.nombre} ${client.apellido} ` : undefined,
+                esCuentaCorriente: isCC,
+                metodosPago: isCC
+                    ? [{ type: 'CUENTA_CORRIENTE', monto: total }] // Backend derived type
+                    : payments,
+                tipoComprobante: 'REMITO', // Default por ahora
+                observaciones: 'Venta POS'
+            };
 
-        try {
-            await ventasApi.crear(saleDTO);
-            setSuccess("Venta registrada correctamente ✅");
-            // Reset form
-            setItems([]);
-            setPayments([]);
-            setClient(null);
-            setIsCC(false);
-            setTimeout(() => setSuccess(null), 3000);
-        } catch (err: any) {
-            console.error(err);
-            setError(err.response?.data?.message || "Error al procesar la venta");
-        } finally {
-            setLoading(false);
-            hideLoading();
-        }
-    };
+            try {
+                mark('venta_request_start');
+                // 1) tiempo hasta request enviada (desde inicio del flujo)
+                measure('venta_time_to_request', 'venta_confirmar_flujo:start', 'venta_request_start');
+
+                await ventasApi.crear(saleDTO);
+                mark('venta_response_received');
+                // 2) backend (aprox) = request_start -> response_received
+                measure('venta_backend_time', 'venta_request_start', 'venta_response_received');
+
+                setSuccess("Venta registrada correctamente ✅");
+                // Reset form
+                setItems([]);
+                setPayments([]);
+                setClient(null);
+                setIsCC(false);
+                setTimeout(() => setSuccess(null), 3000);
+            } catch (err: any) {
+                console.error(err);
+                setError(err.response?.data?.message || "Error al procesar la venta");
+            } finally {
+                setLoading(false);
+                hideLoading();
+                // 3) UI finalizada: después del próximo paint tras setStates
+                requestAnimationFrame(() => {
+                    mark('venta_ui_finalizada');
+                    measure('venta_ui_post_time', 'venta_response_received', 'venta_ui_finalizada');
+                    measure('venta_total_until_ui_final', 'venta_confirmar_flujo:start', 'venta_ui_finalizada');
+                    endFlow('venta_confirmar_flujo');
+                });
+            }
+        });
+    });
 
     return (
         <div className="pos-layout">

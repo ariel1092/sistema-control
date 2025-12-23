@@ -73,6 +73,8 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    // Permite leer `Server-Timing` desde el browser (para correlación frontend)
+    exposedHeaders: ['Server-Timing'],
   });
 
   // Configurar validación global

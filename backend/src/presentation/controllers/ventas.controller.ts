@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, BadRequestException, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, BadRequestException, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
 import { CreateVentaUseCase } from '../../application/use-cases/ventas/create-venta.use-case';
@@ -6,6 +6,7 @@ import { GetVentasDiaUseCase } from '../../application/use-cases/ventas/get-vent
 import { GetVentasRecientesUseCase } from '../../application/use-cases/ventas/get-ventas-recientes.use-case';
 import { GetTransferenciasSocioUseCase } from '../../application/use-cases/ventas/get-transferencias-socio.use-case';
 import { CancelarVentaUseCase } from '../../application/use-cases/ventas/cancelar-venta.use-case';
+import { PerfJwtGuard } from '../../infrastructure/auth/guards/perf-jwt.guard';
 
 @ApiTags('Ventas')
 @Controller('ventas')
@@ -20,6 +21,7 @@ export class VentasController {
 
   @Get()
   @ApiOperation({ summary: 'Obtener ventas recientes por fecha' })
+  @UseGuards(PerfJwtGuard)
   async findAll(@Query('fecha') fecha?: string) {
     if (fecha) {
       const fechaDate = new Date(fecha);

@@ -5,6 +5,10 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoadingProvider } from './context/LoadingContext';
 import Loading from './components/common/Loading';
 import GlobalLoader from './components/ui/GlobalLoader';
+import { usePerformanceMetrics } from './hooks/usePerformanceMetrics';
+import { useInitEventTiming } from './perf/eventTiming';
+import { useLongAnimationFrames } from './perf/longFrames';
+import { useUserTiming } from './perf/userTiming';
 import './App.css';
 
 // OPTIMIZACIÓN: Lazy loading de páginas para code splitting
@@ -74,6 +78,11 @@ function AppRoutes() {
 }
 
 function App() {
+  usePerformanceMetrics('dashboard');
+  useInitEventTiming();
+  useLongAnimationFrames();
+  useUserTiming();
+
   return (
     <LoadingProvider>
       <AuthProvider>

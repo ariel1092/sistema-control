@@ -44,3 +44,4 @@ AuditoriaEventoSchema.index({ 'metadatos.usuarioId': 1, createdAt: -1 });
 
 
 
+

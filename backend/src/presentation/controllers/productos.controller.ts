@@ -17,6 +17,7 @@ import { GetAllProductosUseCase } from '../../application/use-cases/productos/ge
 import { IngresarStockDto, DescontarStockDto, AjusteInventarioDto } from '../../application/dtos/productos/movimiento-stock.dto';
 import { CreateProductoDto } from '../../application/dtos/productos/create-producto.dto';
 import { TipoMovimientoStock } from '../../domain/enums/tipo-movimiento-stock.enum';
+import { PerfJwtGuard } from '../../infrastructure/auth/guards/perf-jwt.guard';
 // import { JwtAuthGuard } from '../../infrastructure/auth/guards/jwt-auth.guard'; // Descomentar cuando tengas auth
 
 const FALLBACK_SYSTEM_USER_ID =
@@ -69,6 +70,7 @@ export class ProductosController {
   @Get()
   @ApiOperation({ summary: 'Buscar o listar productos' })
   @ApiResponse({ status: 200, description: 'Lista de productos' })
+  @UseGuards(PerfJwtGuard)
   async search(
     @Query('q') termino?: string,
     @Query('all') all?: string,

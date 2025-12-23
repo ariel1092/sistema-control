@@ -28,11 +28,12 @@ export class ProductoRepository implements IProductoRepository {
     }
   }
 
-  async findById(id: string): Promise<Producto | null> {
+  async findById(id: string, options?: { session?: any }): Promise<Producto | null> {
     if (!id || !Types.ObjectId.isValid(id)) {
       return null;
     }
-    const productoDoc = await this.productoModel.findById(id).exec();
+    const session = options?.session;
+    const productoDoc = await this.productoModel.findById(id, null, { session }).exec();
     return productoDoc ? ProductoMapper.toDomain(productoDoc) : null;
   }
 
@@ -105,13 +106,44 @@ export class ProductoRepository implements IProductoRepository {
       .exec();
   }
 
-  async findByIds(ids: string[]): Promise<Producto[]> {
+  async findByIds(ids: string[], options?: { session?: any }): Promise<Producto[]> {
     const objectIds = ids.map((id) => new Types.ObjectId(id));
+    const session = options?.session;
     const productosDocs = await this.productoModel
-      .find({ _id: { $in: objectIds } })
+      .find({ _id: { $in: objectIds } }, null, { session })
       .exec();
 
     return productosDocs.map((doc) => ProductoMapper.toDomain(doc));
+  }
+
+  async bulkDescontarStock(
+    items: Array<{ productoId: string; cantidad: number }>,
+    options?: { session?: any },
+  ): Promise<void> {
+    if (!items || items.length === 0) return;
+    const session = options?.session;
+
+    const ops = items.map((it) => ({
+      updateOne: {
+        filter: {
+          _id: new Types.ObjectId(it.productoId),
+          activo: true,
+          // Guardrail de consistencia: evitar stock negativo bajo concurrencia.
+          stockActual: { $gte: it.cantidad },
+        },
+        update: { $inc: { stockActual: -it.cantidad } },
+      },
+    }));
+
+    const res = await this.productoModel.bulkWrite(ops as any, { session });
+
+    // Si algún update no matchea (p.ej. stock insuficiente o producto inactivo), respetar el comportamiento:
+    // falla la operación y la transacción hace rollback.
+    if ((res as any)?.modifiedCount !== ops.length) {
+      throw new Error(
+        `No se pudo descontar stock para todos los productos (actualizados ${(res as any)?.modifiedCount ?? 0}/${ops.length}).`,
+      );
+    }
   }
 }
 

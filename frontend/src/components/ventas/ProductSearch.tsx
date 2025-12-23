@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { productosApi, proveedoresApi } from '../../services/api';
 import { formatearMoneda } from '../../utils/formatters';
 import './VentasComponents.css';
+import { startFlow, endFlow } from '../../perf/userTiming';
 
 interface ProductSearchProps {
     onProductSelect: (product: any) => void;
@@ -59,9 +60,12 @@ export const ProductSearch: React.FC<ProductSearchProps> = ({ onProductSelect })
     }, [wrapperRef]);
 
     const handleSelect = (product: any) => {
+        // Marcamos el flujo de apertura de modal de producto
+        startFlow('producto_modal_open_flujo');
         onProductSelect(product);
         setSearchTerm('');
         setShowResults(false);
+        // El end se dispara cuando el modal se abre en NuevaVentaPage (al setear selectedProduct)
     };
 
     return (
